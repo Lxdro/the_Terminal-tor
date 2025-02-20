@@ -307,6 +307,8 @@ struct HelpView: View {
                         CommandHelpRow(command: "ls", description: "List directory contents, no argument needed")
                         CommandHelpRow(command: "cd", description: "Change to the directory specified as argument")
                         CommandHelpRow(command: "rm", description: "Remove the file specified as argument")
+                        CommandHelpRow(command: "mkdir", description: "Create the directory specified as argument")
+                        CommandHelpRow(command: "touch", description: "Create the file specified as argument")
                         CommandHelpRow(command: "mv", description: "Move the file specified as argument")
                         CommandHelpRow(command: "cp", description: "Copy the file specified as argument")
                         CommandHelpRow(command: "clear", description: "Clear the terminal, even if it's a button in the simulator, this is a real command!")
@@ -324,6 +326,7 @@ struct HelpView: View {
                         Text("• \"..\" represent the parent directory.")
                         Text("• An argument is the word following a command by a space.")
                         Text("• Every command requiring a file as argument can accept a path. Select multiplle files to create one.")
+                         Text("• A path is a sequence of parents and their child, separated by \"/\".")
                         Text("• In the Terminal-tor, files are represented as buttons. However, in a real one, you can press \"Tab\" key to autocomplete your command, or double press it to see all available options.")
                         Text("• In a real Terminal, use arrow keys to naviagte threw command history.")
                     }

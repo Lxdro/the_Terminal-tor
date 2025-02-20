@@ -2,7 +2,7 @@ import SwiftUI
 
 struct Level1View: View {
     // MARK: - State
-    @StateObject private var root = File(name: "root", isDirectory: true)
+    @StateObject private var room = File(name: "room", isDirectory: true)
     @State private var currentDirectory: File?
     @State private var selectedCommand: String?
     @State private var selectedFiles: [String] = []
@@ -27,41 +27,30 @@ struct Level1View: View {
     
     // MARK: - Constants
     private let username = UserDefaults.standard.string(forKey: "username") ?? "user"
-    private let commands = ["cd", "touch", "mkdir", "rm"]
+    private let commands = ["touch", "mkdir", "rm"]
     private let fileOptions = [
         FileOption(emoji: "🔙", name: ".."),
-        FileOption(emoji: "🎮", name: "game"),
-        FileOption(emoji: "📝", name: "note"),
-        FileOption(emoji: "📸", name: "photo"),
-        FileOption(emoji: "🎵", name: "music")
+        FileOption(emoji: "📦", name: "Box"),
+        FileOption(emoji: "🧸", name: "TeddyBear"),
+        FileOption(emoji: "🚂", name: "Train"),
+        FileOption(emoji: "🪁", name: "Kite")
     ]
     
     // Expected file structure for the level
-    private let expectedStructure: [(type: String, path: String)] = [
-        ("directory", "/game"),
-        ("directory", "/photo"),
-        ("file", "/game/note")
-    ]
+    @State private var expectedStructure: File? = nil
     
     // MARK: - Body
     var body: some View {
         VStack(spacing: 0) {
-            //instructionHeader
             HStack(spacing: 0) {
                 VStack {
-                    fileSystemView
-                    expectedTreeView
+                    instructions
+                    fileTreeView
                 }
-                //divider
                 ttyView
             }
             .frame(height: UIScreen.main.bounds.height / 2)
-            
-            //gameStatusSection
             commandSection
-            Button("Complete Level") {
-                showCompletion = true
-            }
         }
         //.background(TTYColors.terminalBlack)
         .onAppear(perform: initializeView)
@@ -71,22 +60,39 @@ struct Level1View: View {
         
     }
     
-    // MARK: - View Components
-    private var instructionHeader: some View {
-        HStack(spacing: 16) {
-            Text("Instructions: create 2 directories and 1 file.")
-                .font(.custom("Glass_TTY_VT220", size: 18))
-            Spacer()
-            if isLevelComplete {
-                Text("🎉 Level Complete! 🎉")
-                    .foregroundColor(.green)
-                    .font(.headline)
+    private var instructions: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Instructions: tidy up your room")
+                .font(.headline)
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.gray.opacity(0.05))
+            
+            ScrollView {
+                Text("""
+                     Now, you can see how your File System look like!
+                     You can't use cd nor ls anymore, you'll probably need to use about path then.
+                     
+                     • Create a box.
+                     • Remove toys that are outisde of the box
+                     • Put your toys inside the it
+                     • Your TeddyBear should be inside another box inside the first one, he will feel more secure like this
+                     
+                     Hint: you can click on multiple file buttons.
+                     """)
+                .font(.system(.body, design: .monospaced))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
             }
         }
-        .padding()
+        .frame(maxWidth: .infinity)
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(12)
+        .shadow(radius: 2)
+        .padding(.leading)
     }
     
-    private var fileSystemView: some View {
+    private var fileTreeView: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Current File System")
                 .font(.headline)
@@ -98,28 +104,6 @@ struct Level1View: View {
                 Text(treeText)
                     .font(.system(.body, design: .monospaced))
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .background(Color.gray.opacity(0.1))
-        .cornerRadius(12)
-        .shadow(radius: 2)
-        .padding(.leading)
-    }
-    
-    private var expectedTreeView: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Expected Structure")
-                .font(.headline)
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.gray.opacity(0.05))
-            
-            ScrollView {
-                Text(expectedTreeText)
-                    .font(.system(.body, design: .monospaced))
-                    .frame(width: .infinity, alignment: .leading)
                     .padding()
             }
         }
@@ -185,10 +169,10 @@ struct Level1View: View {
     
     private var actionButtons: some View {
         HStack {
-            Spacer()
-            ActionButton(title: "Restart", baseColor: .red) {
-                restartLevel()
-            }
+            //Spacer()
+            //ActionButton(title: "Restart", baseColor: .red) {
+            //    restartLevel()
+            //}
 
             Spacer()
             ActionButton(title: "Cancel", baseColor: .orange) {
@@ -216,9 +200,9 @@ struct Level1View: View {
     
     private func restartLevel() {
         // Reset file system
-        root.children?.removeAll()
-        currentDirectory = root
-        realDirectory = root
+        room.children?.removeAll()
+        currentDirectory = room
+        realDirectory = room
         
         // Reset game state
         commandCount = 0
@@ -230,7 +214,6 @@ struct Level1View: View {
         
         // Update views
         updateTreeText()
-        generateExpectedTree()
         welcomeMessage = """
     Welcome to Terminal-tor
     Press buttons to make real commands!
@@ -238,55 +221,10 @@ struct Level1View: View {
     """
     }
     
-    private func generateExpectedTree() {
-        var tree = "📂 root\n"
-        for item in expectedStructure {
-            let components = item.path.split(separator: "/").map(String.init)
-            let indent = String(repeating: "  ", count: components.count)
-            let icon = item.type == "directory" ? "📂" : "📄"
-            tree += "\(indent)\(icon) \(components.last ?? "")\n"
-        }
-        expectedTreeText = tree
-    }
-    
     private func checkLevelCompletion() {
-        // Create a normalized representation of current file system
-        var currentStructure: [(type: String, path: String)] = []
-        
-        func traverse(_ file: File, currentPath: String) {
-            let path = currentPath + "/" + file.name
-            if file.name != "root" {
-                currentStructure.append((file.isDirectory ? "directory" : "file", path))
-            }
-            if let children = file.children {
-                for child in children {
-                    traverse(child, currentPath: path)
-                }
-            }
-        }
-        
-        currentStructure = []
-        if let children = root.children {
-            for child in children {
-                traverse(child, currentPath: "")
-            }
-        }
-        
-        // Sort both arrays to ensure consistent comparison
-        let sortedCurrent = currentStructure.sorted { $0.path < $1.path }
-        let sortedExpected = expectedStructure.sorted { $0.path < $1.path }
-        
-        // Compare structures by checking if they have the same length and all elements match
-        if sortedCurrent.count == sortedExpected.count {
-            isLevelComplete = !zip(sortedCurrent, sortedExpected).contains { current, expected in
-                current.type != expected.type || current.path != expected.path
-            }
-        } else {
-            isLevelComplete = false
-        }
-        
-        if isLevelComplete {
-            welcomeMessage += "\n Congratulations! Level completed in \(commandCount) commands! \n"
+        if room.equals(expectedStructure!) {
+            isLevelComplete = true
+            showCompletion = true
         }
     }
     
@@ -301,14 +239,6 @@ struct Level1View: View {
         .padding(.vertical)
     }
     
-    // MARK: - Helper Functions
-    private func initializeView() {
-        currentDirectory = root
-        realDirectory = root
-        updateTreeText()
-        generateExpectedTree()
-    }
-    
     private func selectCommand(_ command: String) {
         selectedCommand = command
         realCommand = "\(command) "
@@ -316,20 +246,20 @@ struct Level1View: View {
     }
     
     private func isFileSelectable(_ option: FileOption) -> Bool {
-        let currentDir = currentDirectory ?? root
+        let currentDir = currentDirectory ?? room
         return currentDir.isFileSelectable(name: option.name, forCommand: selectedCommand)
     }
     
     private func handleFileSelection(_ option: FileOption) {
         //guard isFileSelectable(option) else { return }
         
-        //let currentDir = currentDirectory ?? root
+        //let currentDir = currentDirectory ?? room
         
         /*
         // Handle directory navigation for cd
         if selectedCommand == "cd" {
             if option.name == ".." {
-                currentDirectory = currentDirectory!.parent ?? root
+                currentDirectory = currentDirectory!.parent ?? room
             } else {
                 currentDirectory = currentDir.getChild(named: option.name)
             }
@@ -373,7 +303,7 @@ struct Level1View: View {
     
     private func parsePath(_ path: String) -> (File, String)? {
         // Start from current directory or root if path starts with /
-        var currentFile = path.hasPrefix("/") ? root : (realDirectory ?? root)
+        var currentFile = path.hasPrefix("/") ? room : (realDirectory ?? room)
         var components = path.split(separator: "/")
         
         // If path starts with /, remove empty first component
@@ -383,7 +313,7 @@ struct Level1View: View {
         
         // Handle special case where path is just "/"
         if components.isEmpty && path.hasPrefix("/") {
-            return (root, "")
+            return (room, "")
         }
         
         // Get the file/directory name (last component)
@@ -395,7 +325,7 @@ struct Level1View: View {
             
             // Handle ".." navigation
             if name == ".." {
-                currentFile = currentFile.parent ?? root
+                currentFile = currentFile.parent ?? room
                 continue
             }
             
@@ -421,8 +351,8 @@ struct Level1View: View {
             if (selectedCommand != "cd") {
                 errorMessage = "Command \(selectedCommand!) need to specify a file."
             } else {
-                realDirectory = root
-                currentDirectory = root
+                realDirectory = room
+                currentDirectory = room
                 addToCommandHistory(realCommand, oldRealDir)
                 updateTreeText()
                 resetCommandState()
@@ -436,18 +366,18 @@ struct Level1View: View {
         switch command {
         case "cd":
             if path.isEmpty || path == "/" {
-                currentDirectory = root
-                realDirectory = root
+                currentDirectory = room
+                realDirectory = room
             } else {
                 // Special case for "cd .."
                 if path == ".." {
-                    currentDirectory = (realDirectory ?? root).parent ?? root
+                    currentDirectory = (realDirectory ?? room).parent ?? room
                     realDirectory = currentDirectory
                 } else {
                     // For cd with path
                     if let (parent, dirname) = parsePath(path) {
                         if dirname == ".." {
-                            currentDirectory = parent.parent ?? root
+                            currentDirectory = parent.parent ?? room
                             realDirectory = currentDirectory
                         } else if let targetDir = parent.cd(dirname) {
                             currentDirectory = targetDir
@@ -527,7 +457,7 @@ struct Level1View: View {
     }
     
     private func updateTreeText() {
-        treeText = generateTreeText(for: root)
+        treeText = generateTreeText(for: room)
     }
     
     private func generateTreeText(for file: File, indent: String = "") -> String {
@@ -538,6 +468,36 @@ struct Level1View: View {
         }
         
         return lines.joined(separator: "\n")
+    }
+    
+    private func initializeView() {
+        room.children?.removeAll()
+        currentDirectory = room
+        realDirectory = room
+        
+        // Initial files
+        let teddyBear = File(name: "TeddyBear", isDirectory: false, parent: room)
+        let kite = File(name: "Kite", isDirectory: false, parent: room)
+        let train = File(name: "Train", isDirectory: false, parent: room)
+        
+        room.children = [teddyBear, kite, train]
+        updateTreeText()
+        expectedStructure = initializeGoal()
+    }
+    
+    private func initializeGoal() -> File {
+        let goalRoot = File(name: "room", isDirectory: true, parent: nil)
+        let box1 = File(name: "Box", isDirectory: true, parent: goalRoot)
+        let train = File(name: "Train", isDirectory: false, parent: box1)
+        let kite = File(name: "Kite", isDirectory: false, parent: box1)
+        let box2 = File(name: "Box", isDirectory: true, parent: box1)
+        let teddyBear = File(name: "TeddyBear", isDirectory: false, parent: box2)
+        
+        box1.children = [train, kite, box2]
+        box2.children = [teddyBear]
+        goalRoot.children = [box1]
+        
+        return goalRoot
     }
 }
 

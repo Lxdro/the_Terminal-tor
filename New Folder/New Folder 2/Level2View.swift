@@ -220,6 +220,7 @@ struct Level2View: View {
             currentDirectory = realDirectory
             realDirectory = root
             addToHistory(command: "cd")
+            currentDirectory = realDirectory
             return
         }
         
@@ -234,6 +235,7 @@ struct Level2View: View {
                 currentDirectory = realDirectory
                 realDirectory = newDir
                 addToHistory(command: "cd " + path)
+                currentDirectory = realDirectory
             } else {
                 setError("cd: not a directory: \(path)")
             }
@@ -305,9 +307,9 @@ struct Level2View: View {
                      Use commands to navigate through the files and discover which country \(cityToFind ?? "a city") is located in.  
                      
                      Available commands:  
-                     - **ls** (list files)  
-                     - **cd** (change directory)  
-                     - **try** (make a guess)  
+                     - **ls**  
+                     - **cd** 
+                     - **try**
                      
                      \"try\" is a special command for this level—when you think you've found the answer, type **"try"** followed by the country's name.  
                      Be careful! You can only use this command **three times**.  
@@ -339,7 +341,7 @@ struct Level2View: View {
     }
     
     private func initializeView() {
-        let root = File(name: "root", isDirectory: true)
+        let root = root
         var cityCountryPairs: [(String, String)] = []
         
         for (continentName, countries) in fileSystemStructure {
