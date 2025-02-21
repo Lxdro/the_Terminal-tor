@@ -321,8 +321,8 @@ struct Level2View: View {
                      - **cd** 
                      - **try**
                      
-                     \"try\" is a special command for this level—when you think you've found the answer, type **"try"** followed by the country's name.  
-                     Be careful! You can only use this command **three times**.  
+                     \"try\" is a special command for this level — when you think you've found the answer, type **"try"** followed by the country's name.  
+                     Be careful! You can only use this command **3 times**.  
                      
                      Remember to clear your terminal when it gets too cluttered.  
                      

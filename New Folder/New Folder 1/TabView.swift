@@ -8,12 +8,12 @@ struct TabView: View {
     @State private var showAchievements = false
     @State private var selectedLevel: Int = 0
     @State private var selectedLevelInstructions = [
-        "Organisation is key",
+        "Organisation is Key",
         "A File Globtrotter",
-        "One friend lost, two commands learned",
+        "1 Friend lost, 2 Commands learned",
         "Family Rescuer",
-        "Ciao",
-        "Hallo"
+        "My tiny File Garden",
+        "The Final Boss"
     ]
     @State private var terminalInput = ""
     @State private var terminalOutput: [String] = []

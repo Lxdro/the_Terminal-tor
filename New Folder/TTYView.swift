@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct TTYView: View {
+    @State var isRed = false
     let commandHistory: [Command]
     let username: String
     let currentPath: String
@@ -15,19 +16,24 @@ struct TTYView: View {
                 .edgesIgnoringSafeArea(.all)
             ZStack {
                 RoundedRectangle(cornerRadius: 15)
-                    .fill(.black.opacity(0.6))
+                    .fill(isRed ? .black.opacity(0.9) : .black.opacity(0.6))
+                if isRed {
+                    RoundedRectangle(cornerRadius: 15)
+                        .fill(.red.opacity(0.1))
+                }
                 RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color.green, lineWidth: 2)
+                    .stroke(isRed ? Color.red : Color.green, lineWidth: 2)
                     .fill(.ultraThinMaterial)
                 VStack(alignment: .leading, spacing: 0) {
                     Text(welcomeMessage)
+                        .foregroundColor(isRed ? .red : .green)
                         .font(.custom("Glass_TTY_VT220", size: 18))
                         .foregroundColor(.green)
                     
                     ForEach(commandHistory, id: \.self) { command in
                         Text("\(username):\(command.path)$ \(command.command)")
                             .font(.custom("Glass_TTY_VT220", size: 18))
-                            .foregroundColor(.green)
+                            .foregroundColor(isRed ? .red : .green)
                             .textSelection(.enabled)
                         
                         if command.error != nil {
@@ -38,7 +44,7 @@ struct TTYView: View {
                         } else if command.output != nil {
                             Text("\n\(command.output!)\n")
                                 .font(.custom("Glass_TTY_VT220", size: 18))
-                                .foregroundColor(.green)
+                                .foregroundColor(isRed ? .red : .green)
                                 .textSelection(.enabled)
                         }
                     }
@@ -46,11 +52,11 @@ struct TTYView: View {
                     HStack(spacing: 0) {
                         Text("\(username):\(currentPath)$ ")
                             .font(.custom("Glass_TTY_VT220", size: 18))
-                            .foregroundColor(.green)
+                            .foregroundColor(isRed ? .red : .green)
                         Text(currentCommand ?? "")
                             .font(.custom("Glass_TTY_VT220", size: 18))
-                            .foregroundColor(.green)
-                        BlinkingCursor()
+                            .foregroundColor(isRed ? .red : .green)
+                        BlinkingCursor(isRed: isRed)
                     }
                     
                     Spacer()
@@ -63,12 +69,13 @@ struct TTYView: View {
 }
 
 struct BlinkingCursor: View {
+    @State var isRed = false
     @State private var isVisible = true
     
     var body: some View {
         Text("_")
             .font(.custom("Glass_TTY_VT220", size: 18))
-            .foregroundColor(.green)
+            .foregroundColor(isRed ? .red : .green)
             .opacity(isVisible ? 1 : 0)
             .onAppear {
                 let timer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { _ in
