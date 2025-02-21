@@ -5,7 +5,6 @@ struct Level5View: View {
     @StateObject private var town = File(name: "town", isDirectory: true)
     @State private var currentDirectory: File?
     @State private var selectedCommand: String?
-    @State private var selectedFiles: [String] = []
     @State private var commandHistory: [Command] = []
     @State private var realCommand: String = ""
     @State private var realDirectory: File?
@@ -13,7 +12,7 @@ struct Level5View: View {
     @State private var commandCount: Int = 0
     @State private var isLevelComplete: Bool = false
     
-    @State private var userCommand: String = ""
+    @State private var historyIndex: Int? = nil
     
     @FocusState private var isFocused: Bool
     @State private var treeText: String = ""
@@ -28,7 +27,7 @@ struct Level5View: View {
     @State private var expectedStructure: File? = nil
     
     private let username = UserDefaults.standard.string(forKey: "username") ?? "user"
-    private let commands = ["cd", "ls", "mkdir", "cp", "mv", "rm"]
+    private let commands = ["cd", "ls", "mkdir", "cp", "mv", "rm", "clear"]
     
     @Binding var selectedLevel: Int
     @State private var showCompletion = false
@@ -38,14 +37,14 @@ struct Level5View: View {
         VStack(spacing: 50) {
             HStack(spacing: 0) {
                 GeometryReader { proxy in
-                    VStack(spacing: 0) { // No spacing to strictly control proportions
+                    VStack(spacing: 0) {
                         instructions
-                            .frame(height: proxy.size.height * (2/5)) // Takes 1/3 of available height
+                            .frame(height: proxy.size.height * (1/3))
                         
                         fileTreeView
-                            .frame(height: proxy.size.height * (3/5)) // Takes 2/3 of available height
+                            .frame(height: proxy.size.height * (2/3))
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity) // Ensure VStack expands fully
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 ttyView
             }
@@ -56,7 +55,7 @@ struct Level5View: View {
                     Text("$")
                         .font(.custom("Glass_TTY_VT220", size: 18))
                         .foregroundColor(TTYColors.text)
-                    TextField("> Enter command", text: $userCommand)
+                    TextField("> Enter command", text: $realCommand)
                         .font(.custom("Glass_TTY_VT220", size: 18))
                         .foregroundColor(TTYColors.text)
                         .background(TTYColors.terminalBlack)
@@ -76,7 +75,7 @@ struct Level5View: View {
                 actionButtons
                 
             }
-            .keyboardShortcut(.return, modifiers: []) // Captures "Enter" key
+            .keyboardShortcut(.return, modifiers: [])
             
         }
         .padding()
@@ -97,7 +96,8 @@ struct Level5View: View {
             
             ScrollView {
                 Text("""
-                     Make a good garden
+                     Firstly, clean everything from your house, then build a garden!
+                     Pick some flower and some trees from the nature around your house to fill your garden.
                      """)
                 .font(.system(.body, design: .monospaced))
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -140,15 +140,17 @@ struct Level5View: View {
                 restartLevel()
             }
             Spacer()
+            Spacer()
             ActionButton(title: "Clear", baseColor: .white) {
                 commandHistory = []
                 welcomeMessage = ""
             }
             Spacer()
+            Spacer()
             ActionButton(
                 title: "Execute",
                 baseColor: .green,
-                isEnabled: userCommand != ""
+                isEnabled: realCommand != ""
             ) {
                 executeCommand()
                 commandCount += 1
@@ -195,7 +197,6 @@ struct Level5View: View {
         
         var currentFile = path.hasPrefix("/") ? town : (realDirectory ?? town)
         var components = path.split(separator: "/")
-        
         if path.hasPrefix("/") {
             components.removeFirst()
         }
@@ -254,7 +255,7 @@ struct Level5View: View {
     // MARK: - Command Processing
     
     private func executeCommand() {
-        let components = userCommand.trimmingCharacters(in: .whitespaces).split(separator: " ")
+        let components = realCommand.trimmingCharacters(in: .whitespaces).split(separator: " ")
         guard !components.isEmpty else {
             setError("Please enter a command")
             return
@@ -263,12 +264,15 @@ struct Level5View: View {
         let command = String(components[0])
         let args: [String] = components.dropFirst().map(String.init)
         
-        guard commands.contains(command) || command == "try" else {
+        guard commands.contains(command) else {
             setError("Unknown command: \(command)")
             return
         }
         
         switch command {
+        case "clear":
+            commandHistory = []
+            welcomeMessage = ""
         case "ls":
             executeLsCommand(args: args)
         case "cd":
@@ -278,16 +282,16 @@ struct Level5View: View {
         case "cp":
             executeMvCp()
         case "mkdir":
-            executeMkdirTouchRm()
+            executeMkdirTouchRm(command: command)
         case "touch":
-            executeMkdirTouchRm()
+            executeMkdirTouchRm(command: command)
         case "rm":
-            executeMkdirTouchRm()
+            executeMkdirTouchRm(command: command)
         default:
             setError("Command not found: \(command)")
         }
         
-        userCommand = ""
+        realCommand = ""
     }
     
     private func inputPath() -> String {
@@ -300,25 +304,10 @@ struct Level5View: View {
     
     private func resetCommandState() {
         realCommand = ""
-        selectedCommand = nil
-        selectedFiles = []
     }
     
-    private func executeMkdirTouchRm() {
+    private func executeMkdirTouchRm(command: String) {
         let oldRealDir = realDirectory
-        if (selectedFiles == []) {
-            if (selectedCommand != "cd") {
-                errorMessage = "Command \(selectedCommand!) need to specify a file."
-            } else {
-                realDirectory = town
-                currentDirectory = town
-                addToHistory(command: realCommand, file: oldRealDir)
-                updateTreeText()
-                resetCommandState()
-            }
-            return
-        }
-        guard let command = selectedCommand else { return }
         
         let path = inputPath()
         
@@ -515,10 +504,11 @@ struct Level5View: View {
         
         let output = targetDir.ls(nil) // We're not passing the path here since we've already resolved it
         
+        /*
         if output.isEmpty {
             setError("No such file or directory")
             return
-        }
+        }*/
         
         addToHistory(command: "ls " + args.joined(separator: " "), output: output)
     }
@@ -559,7 +549,7 @@ struct Level5View: View {
     
     private func setError(_ message: String) {
         errorMessage = message
-        addToHistory(command: userCommand, error: message)
+        addToHistory(command: realCommand, error: message)
     }
     
     private func addToHistory(command: String, file: File? = nil, output: String? = nil, error: String? = nil) {
@@ -567,10 +557,11 @@ struct Level5View: View {
         let newCommand = Command(
             path: getCurrentPath(file: f),
             command: command,
-            error: error,
+            error: error ?? errorMessage,
             output: output
         )
         commandHistory.append(newCommand)
+        errorMessage = nil
     }
     
     // MARK: - Helper Functions
@@ -617,7 +608,7 @@ struct Level5View: View {
             currentCommand: realCommand,
             welcomeMessage: welcomeMessage
         )
-        .frame(width: UIScreen.main.bounds.width / 2)
+        .frame(width: UIScreen.main.bounds.width / 1.8)
     }
     
     private func initializeView() {
@@ -648,14 +639,13 @@ struct Level5View: View {
         let daisy = File(name: "daisy", isDirectory: false, parent: field)
         
         forest.children = [birch, oak, pine]
-        field.children = [daisy, tulip, rose]
+        field.children = [daisy, rose, tulip]
         town.children = [field, forest, house]
         
         updateTreeText()
-        expectedStructure = initializeGoal()
     }
     
-    private func initializeGoal() -> File {
+    private func initializeGoal() {
         let goal = File(name: "town", isDirectory: true, parent: nil)
         
         let goalHouse = File(name: "house", isDirectory: true, parent: goal)
@@ -671,19 +661,23 @@ struct Level5View: View {
         let tulip = File(name: "tulip", isDirectory: false, parent: goalGarden)
         let daisy = File(name: "daisy", isDirectory: false, parent: goalGarden)
         
-        goalGarden.children = [oak, pine, birch, rose, tulip, daisy]
+        goalGarden.children = [birch, daisy, oak, pine, rose, tulip]
         goalHouse.children = [goalGarden]
         
-        goalForest.children = [File(name: "oak", isDirectory: false, parent: goalForest),
-                               File(name: "pine", isDirectory: false, parent: goalForest),
-                               File(name: "birch", isDirectory: false, parent: goalForest)]
+        goalForest.children = [
+            File(name: "birch", isDirectory: false, parent: goalForest),
+            File(name: "oak", isDirectory: false, parent: goalForest),
+            File(name: "pine", isDirectory: false, parent: goalForest)
+                               ]
         
-        goalField.children = [File(name: "rose", isDirectory: false, parent: goalField),
-                              File(name: "tulip", isDirectory: false, parent: goalField),
-                              File(name: "daisy", isDirectory: false, parent: goalField)]
+        goalField.children = [
+            File(name: "daisy", isDirectory: false, parent: goalField),
+            File(name: "rose", isDirectory: false, parent: goalField),
+            File(name: "tulip", isDirectory: false, parent: goalField)
+          ]
         
-        goal.children = [goalHouse, goalForest, goalField]
+        goal.children = [goalField, goalForest, goalHouse]
         
-        return goal
+        expectedStructure = goal
     }
 }

@@ -125,7 +125,7 @@ struct Level4View: View {
             currentCommand: realCommand,
             welcomeMessage: welcomeMessage
         )
-        .frame(width: UIScreen.main.bounds.width / 2)
+        .frame(width: UIScreen.main.bounds.width / 1.8)
         //.cornerRadius(12)
         //.shadow(radius: 2)
         .padding(.trailing)

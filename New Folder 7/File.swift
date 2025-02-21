@@ -5,6 +5,7 @@ class File: ObservableObject {
     weak var parent: File?
     let isDirectory: Bool
     @Published var children: [File]?
+    let emoji: String? = nil
     
     init(name: String, isDirectory: Bool, parent: File? = nil) {
         self.name = name

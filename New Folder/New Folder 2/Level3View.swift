@@ -384,7 +384,7 @@ struct Level3View: View {
             currentCommand: realCommand,
             welcomeMessage: welcomeMessage
         )
-        .frame(width: UIScreen.main.bounds.width / 2)
+        .frame(width: UIScreen.main.bounds.width / 1.8)
     }
     
     private func initializeView() {

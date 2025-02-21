@@ -30,7 +30,7 @@ struct Level2View: View {
     """
     
     private let username = UserDefaults.standard.string(forKey: "username") ?? "user"
-    private let commands = ["cd", "ls"]
+    private let commands = ["cd", "ls", "clear"]
     
     @Binding var selectedLevel: Int
     @State private var showCompletion = false
@@ -178,6 +178,9 @@ struct Level2View: View {
         }
         
         switch command {
+        case "clear":
+            commandHistory = []
+            welcomeMessage = ""
         case "ls":
             executeLsCommand(args: args)
         case "cd":
@@ -212,10 +215,11 @@ struct Level2View: View {
         
         let output = targetDir.ls(nil) // We're not passing the path here since we've already resolved it
         
+        /*
         if output.isEmpty {
             setError("No such file or directory")
             return
-        }
+        }*/
         
         addToHistory(command: "ls " + args.joined(separator: " "), output: output)
     }
@@ -347,7 +351,7 @@ struct Level2View: View {
             currentCommand: realCommand,
             welcomeMessage: welcomeMessage
         )
-        .frame(width: UIScreen.main.bounds.width / 2)
+        .frame(width: UIScreen.main.bounds.width / 1.8)
     }
     
     private func initializeView() {
