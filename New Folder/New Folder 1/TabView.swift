@@ -8,10 +8,10 @@ struct TabView: View {
     @State private var showAchievements = false
     @State private var selectedLevel: Int = 0
     @State private var selectedLevelInstructions = [
-        "The File Explorer",
+        "Organisation is key",
         "A File Globtrotter",
         "One friend lost, two commands learned",
-        "Salut",
+        "Family Rescuer",
         "Ciao",
         "Hallo"
     ]

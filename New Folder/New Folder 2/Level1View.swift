@@ -75,8 +75,8 @@ struct Level1View: View {
                      
                      • Create a box.
                      • Remove toys that are outisde of the box
-                     • Put your toys inside the it
-                     • Your TeddyBear should be inside another box inside the first one, he will feel more secure like this
+                     • Put your toys inside it
+                     • Your TeddyBear should be inside another box inside the first one, he will feel more secure in this position
                      
                      Hint: you can click on multiple file buttons.
                      """)

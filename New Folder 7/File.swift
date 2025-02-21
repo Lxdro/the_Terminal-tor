@@ -1,7 +1,7 @@
 import SwiftUI
 
 class File: ObservableObject {
-    let name: String
+    var name: String
     weak var parent: File?
     let isDirectory: Bool
     @Published var children: [File]?
@@ -67,12 +67,39 @@ class File: ObservableObject {
         return child
     }
     
+    func mv(_ newParent: File) {
+        parent = newParent
+        newParent.setChild(self)
+    }
+    
+    func cp(_ newParent: File) {
+        let tmp = self
+        tmp.parent = newParent
+        newParent.setChild(tmp)
+    }
+    
+    func deepCopy() -> File {
+        let copy = File(name: self.name, isDirectory: self.isDirectory)
+        if let children = self.children {
+            copy.children = children.map { $0.deepCopy() }
+            copy.children?.forEach { $0.parent = copy }
+        }
+        return copy
+    }
+    
     func hasFile(named name: String) -> Bool {
         return children?.contains(where: { $0.name == name }) ?? false
     }
     
     func getChild(named name: String) -> File? {
         return children?.first(where: { $0.name == name })
+    }
+    
+    func setChild(_ file: File) {
+        if (isDirectory) {
+            children?.append(file)
+            children?.sort { $0.name < $1.name }
+        }
     }
     
     func touch(_ name: String) {

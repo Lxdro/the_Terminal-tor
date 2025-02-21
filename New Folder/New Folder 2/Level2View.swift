@@ -2,7 +2,7 @@ import SwiftUI
 
 struct Level2View: View {
     // MARK: - State
-    @StateObject private var root = File(name: "root", isDirectory: true)
+    @StateObject private var map = File(name: "map", isDirectory: true)
     @State private var currentDirectory: File?
     @State private var selectedCommand: String?
     @State private var selectedFiles: [String] = []
@@ -17,6 +17,8 @@ struct Level2View: View {
     //@State private var userAnswer: String = ""
     @State private var correctCountry: String? = nil
     @State private var cityToFind: String? = nil
+    
+    @FocusState private var isFocused: Bool
     
     @State private var tryCount = 0
     
@@ -55,6 +57,12 @@ struct Level2View: View {
                         .background(TTYColors.terminalBlack)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
+                        .focused($isFocused)
+                        .onSubmit {
+                            executeCommand()
+                            commandCount += 1
+                            isFocused = true
+                        }
                 }
                 .padding()
                 .background(TTYColors.terminalBlack)
@@ -63,6 +71,7 @@ struct Level2View: View {
                 actionButtons
                 
             }
+            .keyboardShortcut(.return, modifiers: []) // Captures "Enter" key
             
         }
         .padding()
@@ -70,6 +79,7 @@ struct Level2View: View {
         .sheet(isPresented: $showCompletion) {
             LevelCompletionView(selectedLevel: $selectedLevel)
         }
+        
     }
     
     private var actionButtons: some View {
@@ -95,9 +105,9 @@ struct Level2View: View {
     
     private func restartLevel() {
         // Reset file system
-        root.children?.removeAll()
-        currentDirectory = root
-        realDirectory = root
+        map.children?.removeAll()
+        currentDirectory = map
+        realDirectory = map
         
         // Reset game state
         commandCount = 0
@@ -129,7 +139,7 @@ struct Level2View: View {
     private func resolvePath(_ path: String, from currentDir: File) -> File? {
         // Handle absolute vs relative paths
         let components = parsePath(path)
-        var currentFile: File = path.hasPrefix("/") ? root : currentDir
+        var currentFile: File = path.hasPrefix("/") ? map : currentDir
         
         for component in components {
             switch component {
@@ -218,7 +228,7 @@ struct Level2View: View {
         
         if args.isEmpty {
             currentDirectory = realDirectory
-            realDirectory = root
+            realDirectory = map
             addToHistory(command: "cd")
             currentDirectory = realDirectory
             return
@@ -341,12 +351,12 @@ struct Level2View: View {
     }
     
     private func initializeView() {
-        let root = root
+        let map = map
         var cityCountryPairs: [(String, String)] = []
         
         for (continentName, countries) in fileSystemStructure {
-            let continent = File(name: continentName, isDirectory: true, parent: root)
-            root.children?.append(continent)
+            let continent = File(name: continentName, isDirectory: true, parent: map)
+            map.children?.append(continent)
             
             for (countryName, cities) in countries {
                 let country = File(name: countryName, isDirectory: true, parent: continent)
@@ -366,8 +376,8 @@ struct Level2View: View {
             cityToFind = randomPair.0
         }
         
-        currentDirectory = root
-        realDirectory = root
+        currentDirectory = map
+        realDirectory = map
     }
 }
 
