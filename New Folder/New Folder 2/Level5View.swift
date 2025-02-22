@@ -65,6 +65,7 @@ struct Level5View: View {
                         .onSubmit {
                             executeCommand()
                             commandCount += 1
+                            checkLevelCompletion()
                             isFocused = true
                         }
                 }
@@ -105,7 +106,7 @@ struct Level5View: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .background(Color.gray.opacity(0.1))
+        .background(Color.gray.opacity(0.2))
         .cornerRadius(12)
         .shadow(radius: 2)
         .padding(.leading)
@@ -127,7 +128,7 @@ struct Level5View: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .background(Color.gray.opacity(0.1))
+        .background(Color.gray.opacity(0.2))
         .cornerRadius(12)
         .shadow(radius: 2)
         .padding(.leading)
@@ -643,6 +644,8 @@ struct Level5View: View {
         town.children = [field, forest, house]
         
         updateTreeText()
+        initializeGoal()
+        
     }
     
     private func initializeGoal() {

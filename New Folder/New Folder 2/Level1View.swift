@@ -86,7 +86,7 @@ struct Level1View: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .background(Color.gray.opacity(0.1))
+        .background(Color.gray.opacity(0.2))
         .cornerRadius(12)
         .shadow(radius: 2)
         .padding(.leading)
@@ -108,7 +108,7 @@ struct Level1View: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .background(Color.gray.opacity(0.1))
+        .background(Color.gray.opacity(0.2))
         .cornerRadius(12)
         .shadow(radius: 2)
         .padding(.leading)

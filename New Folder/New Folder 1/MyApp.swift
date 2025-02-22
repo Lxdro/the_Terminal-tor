@@ -6,10 +6,10 @@ struct MyApp: App {
     
     var body: some Scene {
         WindowGroup {
-            @State var tmp: Int = 1
+            //@State var tmp: Int = 1
             if hasSeenOnboarding {
-                //TabView()
-                Level6View(selectedLevel: $tmp)
+                TabView()
+                //Level6View(selectedLevel: $tmp)
                     .preferredColorScheme(.dark)
             } else {
                 OnboardingView()

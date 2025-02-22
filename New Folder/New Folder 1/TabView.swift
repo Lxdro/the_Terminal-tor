@@ -12,7 +12,7 @@ struct TabView: View {
         "A File Globtrotter",
         "1 Friend lost, 2 Commands learned",
         "Family Rescuer",
-        "My tiny File Garden",
+        "My Tiny File Garden",
         "The Final Boss"
     ]
     @State private var terminalInput = ""
@@ -30,7 +30,7 @@ struct TabView: View {
                         VStack(alignment: .leading, spacing: 15) {
                             Text("TTY00\(selectedLevel) - Level \(selectedLevel): \(selectedLevelInstructions[selectedLevel - 1])")
                                 .font(.custom("Glass_TTY_VT220", size: 24))
-                                .foregroundColor(TTYColors.text)
+                                .foregroundColor(selectedLevel == 6 ? .red : TTYColors.text)
                             
                             LevelContentView(selectedLevel: $selectedLevel)
                                 .padding()
@@ -93,11 +93,11 @@ struct TabView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 25) {
-                        TTYToolbarButton(title: "HOME", systemImage: "house", action: { selectedLevel = 0 })
-                        TTYToolbarButton(title: "LEVELS", systemImage: "terminal", action: { showLevels.toggle() })
-                        TTYToolbarButton(title: "HELP", systemImage: "questionmark.circle", action: { showHelp.toggle() })
-                        TTYToolbarButton(title: "STATS", systemImage: "trophy", action: { showAchievements.toggle() })
-                        TTYToolbarButton(title: "CONFIG", systemImage: "slider.horizontal.3", action: { showSettings.toggle() })
+                        TTYToolbarButton(title: "HOME", systemImage: "house", action: { selectedLevel = 0 }, level: $selectedLevel)
+                        TTYToolbarButton(title: "LEVELS", systemImage: "terminal", action: { showLevels.toggle() }, level: $selectedLevel)
+                        TTYToolbarButton(title: "HELP", systemImage: "questionmark.circle", action: { showHelp.toggle() }, level: $selectedLevel)
+                        TTYToolbarButton(title: "STATS", systemImage: "trophy", action: { showAchievements.toggle() }, level: $selectedLevel)
+                        TTYToolbarButton(title: "CONFIG", systemImage: "slider.horizontal.3", action: { showSettings.toggle() }, level: $selectedLevel)
                     }
                 }
             }
@@ -147,13 +147,14 @@ struct TTYToolbarButton: View {
     let title: String
     let systemImage: String
     let action: () -> Void
+    @Binding var level: Int
     
     var body: some View {
         Button(action: action) {
             Label(title, systemImage: systemImage)
                 .font(.custom("Glass_TTY_VT220", size: 16))
-                .foregroundColor(TTYColors.text)
-                .shadow(color: .green, radius: 3, x: 0, y: 0)
+                .foregroundColor(level == 6 ? .red : .green)
+                .shadow(color: level == 6 ? .red : .green, radius: 3, x: 0, y: 0)
         }
     }
 }

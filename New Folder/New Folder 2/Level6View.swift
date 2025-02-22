@@ -2,7 +2,7 @@ import SwiftUI
 
 struct Level6View: View {
     // MARK: - State
-    @StateObject private var town = File(name: "town", isDirectory: true)
+    @State private var factory = File(name: "factory", isDirectory: true)
     @State private var currentDirectory: File?
     @State private var selectedCommand: String?
     @State private var commandHistory: [Command] = []
@@ -11,7 +11,7 @@ struct Level6View: View {
     @State private var errorMessage: String? = nil
     @State private var commandCount: Int = 0
     @State private var isLevelComplete: Bool = false
-    
+    @State private var oldDirectory: File?
     @State private var historyIndex: Int? = nil
     
     @FocusState private var isFocused: Bool
@@ -19,15 +19,22 @@ struct Level6View: View {
     
     @State var welcomeMessage =
     """
-    Welcome to the Terminal-tor
-    Write yourself commands to solve the level!
+    say Welcome to the Terminal-tor
+    Write yourself commands to save your life!
     
     """
     
-    @State private var expectedStructure: File? = nil
+    @State private var hitCount: Int = 0
+    @State private var phase = 0
+    
+    @State private var expectedStructure: File = File(name: "door", isDirectory: true)
     
     private let username = UserDefaults.standard.string(forKey: "username") ?? "user"
-    private let commands = ["cd", "ls", "mkdir", "cp", "mv", "rm", "clear"]
+    private let commands = ["cd", "ls", "touch", "mkdir", "cp", "mv", "rm", "clear"]
+    
+    @State private var timeElapsed: Int = 0
+    @State private var timer: Timer? = nil
+    @State private var timeDifficulty = 13
     
     @Binding var selectedLevel: Int
     @State private var showCompletion = false
@@ -57,14 +64,15 @@ struct Level6View: View {
                         .foregroundColor(.red)
                     TextField("> Enter command", text: $realCommand)
                         .font(.custom("Glass_TTY_VT220", size: 18))
-                        .foregroundColor(TTYColors.text)
+                        .foregroundColor(.red)
                         .background(TTYColors.terminalBlack)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
                         .focused($isFocused)
+                        .disabled(hitCount == 3)
+                        .tint(.red)
                         .onSubmit {
-                            executeCommand()
-                            commandCount += 1
+                            executeWrapped()
                             isFocused = true
                         }
                 }
@@ -88,7 +96,7 @@ struct Level6View: View {
     
     private var instructions: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Instructions: make a good garden")
+            Text("Instructions: Run Sarah!")
                 .font(.headline)
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -96,8 +104,8 @@ struct Level6View: View {
             
             ScrollView {
                 Text("""
-                     Firstly, clean everything from your house, then build a garden!
-                     Pick some flower and some trees from the nature around your house to fill your garden.
+                     Beat the Terminal-tor...
+                     Your structure should be the same as the expected one below.
                      """)
                 .font(.system(.body, design: .monospaced))
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -105,7 +113,7 @@ struct Level6View: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .background(Color.gray.opacity(0.1))
+        .background(Color.gray.opacity(0.2))
         .cornerRadius(12)
         .shadow(radius: 2)
         .padding(.leading)
@@ -113,21 +121,21 @@ struct Level6View: View {
     
     private var fileTreeView: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Current File System")
+            Text("Expected File System")
                 .font(.headline)
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color.gray.opacity(0.05))
             
             ScrollView {
-                Text(treeText)
+                Text(generateTreeText(for: expectedStructure))
                     .font(.system(.body, design: .monospaced))
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding()
             }
         }
         .frame(maxWidth: .infinity)
-        .background(Color.gray.opacity(0.1))
+        .background(Color.gray.opacity(0.2))
         .cornerRadius(12)
         .shadow(radius: 2)
         .padding(.leading)
@@ -152,19 +160,64 @@ struct Level6View: View {
                 baseColor: .green,
                 isEnabled: realCommand != ""
             ) {
-                executeCommand()
-                commandCount += 1
-                checkLevelCompletion()
+                executeWrapped()
             }
             Spacer()
         }
     }
     
+    private func executeWrapped() {
+        if timer == nil {
+            timeElapsed = 0
+            timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+                timeElapsed += 1
+                checkTimeElapsed()
+            }
+        }
+        executeCommand()
+        commandCount += 1
+        checkLevelCompletion()
+    }
+    
+    private func checkTimeElapsed() {
+        //print((oldDirectory?.name ?? "nil") + " " + (realDirectory?.name ?? "nil"))
+        if timeElapsed > 0 && timeElapsed % timeDifficulty == 0 {
+            if oldDirectory?.name == realDirectory?.name {
+                if hitCount == 2 {
+                    commandHistory = []
+                    welcomeMessage = "The Terminal-tor killed you... Restart.\n"
+                    realCommand = ""
+                    hitCount += 1
+                    stopTimer()
+                } else {
+                    commandHistory = []
+                    welcomeMessage = "The Terminal-tor attacked! You got hit!\n"
+                    realCommand = ""
+                    hitCount += 1
+                }
+            } else {
+                commandHistory = []
+                welcomeMessage = "The Terminal-tor attacked! You dodged!\n"
+                realCommand = ""
+            }
+            oldDirectory = realDirectory
+        }
+    }
+    
+    private func stopTimer() {
+        timer?.invalidate()
+        timer = nil
+    }
+    
     private func restartLevel() {
         // Reset file system
-        town.children?.removeAll()
-        currentDirectory = town
-        realDirectory = town
+        stopTimer()
+        timer = nil
+        timeElapsed = 0
+        factory.children?.removeAll()
+        currentDirectory = factory
+        realDirectory = factory
+        oldDirectory = factory
         
         // Reset game state
         commandCount = 0
@@ -195,14 +248,14 @@ struct Level6View: View {
     
     private func parsePath2(_ path: String) -> (File, String)? {
         
-        var currentFile = path.hasPrefix("/") ? town : (realDirectory ?? town)
+        var currentFile = path.hasPrefix("/") ? factory : (realDirectory ?? factory)
         var components = path.split(separator: "/")
         if path.hasPrefix("/") {
             components.removeFirst()
         }
         
         if components.isEmpty && path.hasPrefix("/") {
-            return (town, "")
+            return (factory, "")
         }
         
         let targetName = String(components.removeLast())
@@ -211,7 +264,7 @@ struct Level6View: View {
             let name = String(component)
             
             if name == ".." {
-                currentFile = currentFile.parent ?? town
+                currentFile = currentFile.parent ?? factory
                 continue
             }
             
@@ -231,7 +284,7 @@ struct Level6View: View {
     private func resolvePath(_ path: String, from currentDir: File) -> File? {
         // Handle absolute vs relative paths
         let components = parsePath(path)
-        var currentFile: File = path.hasPrefix("/") ? town : currentDir
+        var currentFile: File = path.hasPrefix("/") ? factory : currentDir
         
         for component in components {
             switch component {
@@ -314,20 +367,24 @@ struct Level6View: View {
         switch command {
         case "cd":
             if path.isEmpty || path == "/" {
-                currentDirectory = town
-                realDirectory = town
+                oldDirectory = oldRealDir
+                currentDirectory = factory
+                realDirectory = factory
             } else {
                 // Special case for "cd .."
                 if path == ".." {
-                    currentDirectory = (realDirectory ?? town).parent ?? town
+                    oldDirectory = oldRealDir
+                    currentDirectory = (realDirectory ?? factory).parent ?? factory
                     realDirectory = currentDirectory
                 } else {
                     // For cd with path
                     if let (parent, dirname) = parsePath2(path) {
                         if dirname == ".." {
-                            currentDirectory = parent.parent ?? town
+                            oldDirectory = oldRealDir
+                            currentDirectory = parent.parent ?? factory
                             realDirectory = currentDirectory
                         } else if let targetDir = parent.cd(dirname) {
+                            oldDirectory = oldRealDir
                             currentDirectory = targetDir
                             realDirectory = currentDirectory
                         } else {
@@ -372,6 +429,9 @@ struct Level6View: View {
             }
             
         case "rm":
+            if phase == 2 {
+                errorMessage = "Cannot remove him"
+            }
             if path == ".." {
                 errorMessage = "Cannot remove directory: .."
             } else if let (parent, name) = parsePath2(path) {
@@ -520,8 +580,9 @@ struct Level6View: View {
         }
         
         if args.isEmpty {
+            oldDirectory = realDirectory
             currentDirectory = realDirectory
-            realDirectory = town
+            realDirectory = factory
             addToHistory(command: "cd")
             currentDirectory = realDirectory
             return
@@ -535,6 +596,7 @@ struct Level6View: View {
         let path = args[0]
         if let newDir = resolvePath(path, from: currentDir) {
             if newDir.isDirectory {
+                oldDirectory = realDirectory
                 currentDirectory = realDirectory
                 realDirectory = newDir
                 addToHistory(command: "cd " + path)
@@ -579,14 +641,28 @@ struct Level6View: View {
     }
     
     private func checkLevelCompletion() {
-        if town.equals(expectedStructure!) {
-            isLevelComplete = true
-            showCompletion = true
+        if factory.equals(expectedStructure) {
+            phase += 1
+            if phase == 1 {
+                timeDifficulty = 15
+                commandHistory = []
+                welcomeMessage = "Well done, blow the Termial-tor up!\n"
+                initializePhase2()
+            } else if phase == 2 {
+                timeDifficulty = 20
+                commandHistory = []
+                welcomeMessage = "He can't walk anymore! Move the Terminal-tor inside the hydraulic press!\n"
+                initializePhase3()
+            } else if phase == 3 {
+                stopTimer()
+                isLevelComplete = true
+                showCompletion = true
+            }
         }
     }
     
     private func updateTreeText() {
-        treeText = generateTreeText(for: town)
+        treeText = generateTreeText(for: factory)
     }
     
     private func generateTreeText(for file: File, indent: String = "") -> String {
@@ -612,72 +688,191 @@ struct Level6View: View {
     }
     
     private func initializeView() {
-        town.children?.removeAll()
-        currentDirectory = town
-        realDirectory = town
+        factory.children?.removeAll()
+        currentDirectory = factory
+        realDirectory = factory
+        oldDirectory = realDirectory
         
-        // Creating directories under town
-        let house = File(name: "house", isDirectory: true, parent: town)
-        let forest = File(name: "forest", isDirectory: true, parent: town)
-        let field = File(name: "field", isDirectory: true, parent: town)
+        // Creating directories under factory
+        let door = File(name: "door", isDirectory: true, parent: factory)
+        let machineRoom = File(name: "machineRoom", isDirectory: true, parent: door)
+        let hydraulicPress = File(name: "hydraulicPress", isDirectory: true, parent: machineRoom)
+        let automatedRobots = File(name: "automatedRobots", isDirectory: true, parent: machineRoom)
+        //let treadmill = File(name: "treadmill", isDirectory: true, parent: machineRoom)
+        let stairs = File(name: "stairs", isDirectory: true, parent: machineRoom)
         
-        // Creating directories inside house
-        let gardenShed = File(name: "gardenshed", isDirectory: true, parent: house)
-        let brokenPot = File(name: "brokenpot", isDirectory: false, parent: gardenShed)
-        let rustyRake = File(name: "rustyrake", isDirectory: false, parent: gardenShed)
-        let oldWheelbarrow = File(name: "oldwheelbarrow", isDirectory: false, parent: gardenShed)
+        factory.children = [door]
+        door.children = [machineRoom]
+        machineRoom.children = [automatedRobots, hydraulicPress, stairs]
         
-        gardenShed.children = [brokenPot, oldWheelbarrow, rustyRake]
-        house.children = [gardenShed]
+        let off1 = File(name: "off", isDirectory: false, parent: automatedRobots)
+        let off2 = File(name: "off", isDirectory: false, parent: hydraulicPress)
+        //let off3 = File(name: "off", isDirectory: false, parent: treadmill)
         
-        let oak = File(name: "oak", isDirectory: false, parent: forest)
-        let pine = File(name: "pine", isDirectory: false, parent: forest)
-        let birch = File(name: "birch", isDirectory: false, parent: forest)
-        
-        let rose = File(name: "rose", isDirectory: false, parent: field)
-        let tulip = File(name: "tulip", isDirectory: false, parent: field)
-        let daisy = File(name: "daisy", isDirectory: false, parent: field)
-        
-        forest.children = [birch, oak, pine]
-        field.children = [daisy, rose, tulip]
-        town.children = [field, forest, house]
+        automatedRobots.children = [off1]
+        hydraulicPress.children = [off2]
+        //treadmill.children = [off3]
         
         updateTreeText()
+        initializeGoal()
     }
     
     private func initializeGoal() {
-        let goal = File(name: "town", isDirectory: true, parent: nil)
+        let goal = File(name: "factory", isDirectory: true, parent: nil)
         
-        let goalHouse = File(name: "house", isDirectory: true, parent: goal)
-        let goalForest = File(name: "forest", isDirectory: true, parent: goal)
-        let goalField = File(name: "field", isDirectory: true, parent: goal)
+        let door = File(name: "door", isDirectory: true, parent: factory)
+        let machineRoom = File(name: "machineRoom", isDirectory: true, parent: door)
+        let hydraulicPress = File(name: "hydraulicPress", isDirectory: true, parent: machineRoom)
+        let automatedRobots = File(name: "automatedRobots", isDirectory: true, parent: machineRoom)
+        //let treadmill = File(name: "treadmill", isDirectory: true, parent: machineRoom)
+        let stairs = File(name: "stairs", isDirectory: true, parent: machineRoom)
         
-        let goalGarden = File(name: "garden", isDirectory: true, parent: goalHouse)
+        goal.children = [door]
+        door.children = [machineRoom]
+        machineRoom.children = [automatedRobots, hydraulicPress, stairs]
         
-        let oak = File(name: "oak", isDirectory: false, parent: goalGarden)
-        let pine = File(name: "pine", isDirectory: false, parent: goalGarden)
-        let birch = File(name: "birch", isDirectory: false, parent: goalGarden)
-        let rose = File(name: "rose", isDirectory: false, parent: goalGarden)
-        let tulip = File(name: "tulip", isDirectory: false, parent: goalGarden)
-        let daisy = File(name: "daisy", isDirectory: false, parent: goalGarden)
+        let on1 = File(name: "on", isDirectory: false, parent: automatedRobots)
+        let on2 = File(name: "on", isDirectory: false, parent: hydraulicPress)
+        //let on3 = File(name: "on", isDirectory: false, parent: treadmill)
         
-        goalGarden.children = [birch, daisy, oak, pine, rose, tulip]
-        goalHouse.children = [goalGarden]
+        automatedRobots.children = [on1]
+        hydraulicPress.children = [on2]
+        //treadmill.children = [on3]
         
-        goalForest.children = [
-            File(name: "birch", isDirectory: false, parent: goalForest),
-            File(name: "oak", isDirectory: false, parent: goalForest),
-            File(name: "pine", isDirectory: false, parent: goalForest)
-        ]
+        let trap = File(name: "trap", isDirectory: true, parent: stairs)
+        let pipeBomb = File(name: "pipeBomb", isDirectory: false, parent: trap)
         
-        goalField.children = [
-            File(name: "daisy", isDirectory: false, parent: goalField),
-            File(name: "rose", isDirectory: false, parent: goalField),
-            File(name: "tulip", isDirectory: false, parent: goalField)
-        ]
+        stairs.children = [trap]
+        trap.children = [pipeBomb]
+        updateTreeText()
+        expectedStructure = goal
+    }
+    
+    private func initializePhase2() {
+        let goal = File(name: "factory", isDirectory: true, parent: nil)
         
-        goal.children = [goalField, goalForest, goalHouse]
+        let door = File(name: "door", isDirectory: true, parent: factory)
+        let machineRoom = File(name: "machineRoom", isDirectory: true, parent: door)
+        let hydraulicPress = File(name: "hydraulicPress", isDirectory: true, parent: machineRoom)
+        let automatedRobots = File(name: "automatedRobots", isDirectory: true, parent: machineRoom)
+        //let treadmill = File(name: "treadmill", isDirectory: true, parent: machineRoom)
+        let stairs = File(name: "stairs", isDirectory: true, parent: machineRoom)
         
+        goal.children = [door]
+        door.children = [machineRoom]
+        machineRoom.children = [automatedRobots, hydraulicPress, stairs]
+        
+        let on1 = File(name: "on", isDirectory: false, parent: automatedRobots)
+        let on2 = File(name: "on", isDirectory: false, parent: hydraulicPress)
+        //let on3 = File(name: "on", isDirectory: false, parent: treadmill)
+        
+        automatedRobots.children = [on1]
+        hydraulicPress.children = [on2]
+        //treadmill.children = [on3]
+        
+        let trap = File(name: "trap", isDirectory: true, parent: stairs)
+        let legs = File(name: "legs", isDirectory: false, parent: trap)
+        
+        stairs.children = [trap]
+        trap.children = [legs]
+        
+        realDirectory = trap
+        factory = goal
+        updateTreeText()
+        initializeGoal2()
+    }
+    
+    private func initializeGoal2() {
+        let goal = File(name: "factory", isDirectory: true, parent: nil)
+        
+        let door = File(name: "door", isDirectory: true, parent: factory)
+        let machineRoom = File(name: "machineRoom", isDirectory: true, parent: door)
+        let hydraulicPress = File(name: "hydraulicPress", isDirectory: true, parent: machineRoom)
+        let automatedRobots = File(name: "automatedRobots", isDirectory: true, parent: machineRoom)
+        //let treadmill = File(name: "treadmill", isDirectory: true, parent: machineRoom)
+        let stairs = File(name: "stairs", isDirectory: true, parent: machineRoom)
+        
+        goal.children = [door]
+        door.children = [machineRoom]
+        machineRoom.children = [automatedRobots, hydraulicPress, stairs]
+        
+        let on1 = File(name: "on", isDirectory: false, parent: automatedRobots)
+        let on2 = File(name: "on", isDirectory: false, parent: hydraulicPress)
+        //let on3 = File(name: "on", isDirectory: false, parent: treadmill)
+        
+        automatedRobots.children = [on1]
+        hydraulicPress.children = [on2]
+        //treadmill.children = [on3]
+        
+        let trap = File(name: "trap", isDirectory: true, parent: stairs)
+        
+        stairs.children = [trap]
+        trap.children = []
+        updateTreeText()
+        expectedStructure = goal
+    }
+    
+    private func initializePhase3() {
+        let goal = File(name: "factory", isDirectory: true, parent: nil)
+        
+        let door = File(name: "door", isDirectory: true, parent: factory)
+        let machineRoom = File(name: "machineRoom", isDirectory: true, parent: door)
+        let hydraulicPress = File(name: "hydraulicPress", isDirectory: true, parent: machineRoom)
+        let automatedRobots = File(name: "automatedRobots", isDirectory: true, parent: machineRoom)
+        //let treadmill = File(name: "treadmill", isDirectory: true, parent: machineRoom)
+        let stairs = File(name: "stairs", isDirectory: true, parent: machineRoom)
+        
+        goal.children = [door]
+        door.children = [machineRoom]
+        machineRoom.children = [automatedRobots, hydraulicPress, stairs]
+        
+        let on1 = File(name: "on", isDirectory: false, parent: automatedRobots)
+        let on2 = File(name: "on", isDirectory: false, parent: hydraulicPress)
+        //let on3 = File(name: "on", isDirectory: false, parent: treadmill)
+        
+        automatedRobots.children = [on1]
+        hydraulicPress.children = [on2]
+        //treadmill.children = [on3]
+        
+        let trap = File(name: "trap", isDirectory: true, parent: stairs)
+        let terminaltor = File(name: "Terminal-tor", isDirectory: false, parent: trap)
+        
+        stairs.children = [trap]
+        trap.children = [terminaltor]
+        
+        realDirectory = trap
+        factory = goal
+        updateTreeText()
+        initializeGoal3()
+    }
+    
+    private func initializeGoal3() {
+        let goal = File(name: "factory", isDirectory: true, parent: nil)
+        
+        let door = File(name: "door", isDirectory: true, parent: factory)
+        let machineRoom = File(name: "machineRoom", isDirectory: true, parent: door)
+        let hydraulicPress = File(name: "hydraulicPress", isDirectory: true, parent: machineRoom)
+        let automatedRobots = File(name: "automatedRobots", isDirectory: true, parent: machineRoom)
+        //let treadmill = File(name: "treadmill", isDirectory: true, parent: machineRoom)
+        let stairs = File(name: "stairs", isDirectory: true, parent: machineRoom)
+        
+        goal.children = [door]
+        door.children = [machineRoom]
+        machineRoom.children = [automatedRobots, hydraulicPress, stairs]
+        
+        let on1 = File(name: "on", isDirectory: false, parent: automatedRobots)
+        let on2 = File(name: "on", isDirectory: false, parent: hydraulicPress)
+        let terminaltor = File(name: "Terminal-tor", isDirectory: false, parent: hydraulicPress)
+        
+        automatedRobots.children = [on1]
+        hydraulicPress.children = [on2, terminaltor]
+        //treadmill.children = [on3]
+        
+        let trap = File(name: "trap", isDirectory: true, parent: stairs)
+        
+        stairs.children = [trap]
+        trap.children = []
+        updateTreeText()
         expectedStructure = goal
     }
 }

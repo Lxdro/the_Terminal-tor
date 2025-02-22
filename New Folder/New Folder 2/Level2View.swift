@@ -314,7 +314,7 @@ struct Level2View: View {
                 .font(.headline)
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.gray.opacity(0.1))
+                .background(Color.gray.opacity(0.05))
             
             ScrollView {
                 Text("""
