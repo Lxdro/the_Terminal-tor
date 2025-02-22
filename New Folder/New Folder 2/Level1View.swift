@@ -49,7 +49,7 @@ struct Level1View: View {
                 }
                 ttyView
             }
-            .frame(height: UIScreen.main.bounds.height / 2)
+            .frame(height: UIScreen.main.bounds.height / 2.5)
             commandSection
         }
         //.background(TTYColors.terminalBlack)

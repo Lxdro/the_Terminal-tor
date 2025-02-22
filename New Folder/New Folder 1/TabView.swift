@@ -10,7 +10,7 @@ struct TabView: View {
     @State private var selectedLevelInstructions = [
         "Organisation is Key",
         "A File Globtrotter",
-        "1 Friend lost, 2 Commands learned",
+        "Grass Maze",
         "Family Rescuer",
         "My Tiny File Garden",
         "The Final Boss"
@@ -37,7 +37,7 @@ struct TabView: View {
                                 .background(TTYColors.background)
                                 .cornerRadius(5)
                         }
-                        .padding(30)
+                        .padding(20)
                     } else {
                         ZStack {
                             PlayerView()

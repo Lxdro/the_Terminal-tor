@@ -12,8 +12,8 @@ struct TTYView: View {
     var body: some View {
         ZStack {
             PlayerView()
-                .ignoresSafeArea()
-                .edgesIgnoringSafeArea(.all)
+                //.ignoresSafeArea()
+                //.edgesIgnoringSafeArea(.all)
             ZStack {
                 RoundedRectangle(cornerRadius: 15)
                     .fill(isRed ? .black.opacity(0.9) : .black.opacity(0.6))

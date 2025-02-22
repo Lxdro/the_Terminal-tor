@@ -106,6 +106,7 @@ struct Level6View: View {
                 Text("""
                      Beat the Terminal-tor...
                      Your structure should be the same as the expected one below.
+                     Keep moving to doge Terminal-tor.
                      """)
                 .font(.system(.body, design: .monospaced))
                 .frame(maxWidth: .infinity, alignment: .leading)

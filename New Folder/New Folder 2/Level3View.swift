@@ -37,21 +37,18 @@ struct Level3View: View {
     
     // MARK: - Body
     var body: some View {
-        VStack(spacing: 50) {
+        VStack(spacing: 0) {
             HStack(spacing: 0) {
                 VStack {
                     instructionView
                 }
                 ttyView
             }
-            .frame(height: UIScreen.main.bounds.height / 2)
+            .frame(height: UIScreen.main.bounds.height / 2.5)
             
-            VStack(spacing: 50) {
-                commandSection
-            }
+            commandSection
             
         }
-        .padding()
         .onAppear(perform: initializeView)
         .sheet(isPresented: $showCompletion) {
             LevelCompletionView(selectedLevel: $selectedLevel)
