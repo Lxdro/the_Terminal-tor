@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct Level6View: View {
-    // MARK: - State
     @State private var factory = File(name: "factory", isDirectory: true)
     @State private var currentDirectory: File?
     @State private var selectedCommand: String?
@@ -39,7 +38,6 @@ struct Level6View: View {
     @Binding var selectedLevel: Int
     @State private var showCompletion = false
     
-    // MARK: - Body
     var body: some View {
         VStack(spacing: 50) {
             HStack(spacing: 0) {
@@ -61,16 +59,16 @@ struct Level6View: View {
                 HStack {
                     Text("$")
                         .font(.custom("Glass_TTY_VT220", size: 18))
-                        .foregroundColor(.red)
+                        .foregroundColor(TTYColors.red)
                     TextField("> Enter command", text: $realCommand)
                         .font(.custom("Glass_TTY_VT220", size: 18))
-                        .foregroundColor(.red)
+                        .foregroundColor(TTYColors.red)
                         .background(TTYColors.terminalBlack)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
                         .focused($isFocused)
                         .disabled(hitCount == 3)
-                        .tint(.red)
+                        .tint(TTYColors.red)
                         .onSubmit {
                             executeWrapped()
                             isFocused = true
@@ -89,7 +87,7 @@ struct Level6View: View {
         .padding()
         .onAppear(perform: initializeView)
         .sheet(isPresented: $showCompletion) {
-            LevelCompletionView(selectedLevel: $selectedLevel)
+            LevelCompletionView(selectedLevel: $selectedLevel, commandCount: commandCount, timeElapsed: timeElapsed)
         }
         
     }
@@ -211,7 +209,6 @@ struct Level6View: View {
     }
     
     private func restartLevel() {
-        // Reset file system
         stopTimer()
         timer = nil
         timeElapsed = 0
@@ -220,14 +217,12 @@ struct Level6View: View {
         realDirectory = factory
         oldDirectory = factory
         
-        // Reset game state
         commandCount = 0
         isLevelComplete = false
         commandHistory = []
         
         initializeView()
         
-        // Reset command state
         //resetCommandState()
         welcomeMessage = """
     Welcome to the Terminal-tor
@@ -237,10 +232,8 @@ struct Level6View: View {
     }
     
     private func parsePath(_ path: String) -> [String] {
-        // Handle empty path
         guard !path.isEmpty else { return [] }
         
-        // Split path into components
         let components = path.split(separator: "/", omittingEmptySubsequences: true)
             .map(String.init)
         
@@ -283,7 +276,6 @@ struct Level6View: View {
     }
     
     private func resolvePath(_ path: String, from currentDir: File) -> File? {
-        // Handle absolute vs relative paths
         let components = parsePath(path)
         var currentFile: File = path.hasPrefix("/") ? factory : currentDir
         
@@ -305,8 +297,6 @@ struct Level6View: View {
         
         return currentFile
     }
-    
-    // MARK: - Command Processing
     
     private func executeCommand() {
         let components = realCommand.trimmingCharacters(in: .whitespaces).split(separator: " ")
@@ -372,13 +362,11 @@ struct Level6View: View {
                 currentDirectory = factory
                 realDirectory = factory
             } else {
-                // Special case for "cd .."
                 if path == ".." {
                     oldDirectory = oldRealDir
                     currentDirectory = (realDirectory ?? factory).parent ?? factory
                     realDirectory = currentDirectory
                 } else {
-                    // For cd with path
                     if let (parent, dirname) = parsePath2(path) {
                         if dirname == ".." {
                             oldDirectory = oldRealDir
@@ -401,7 +389,6 @@ struct Level6View: View {
             if path == ".." {
                 errorMessage = "Invalid file name: .."
             } else if let (parent, filename) = parsePath2(path) {
-                // Check if the final component is ".."
                 if filename == ".." {
                     errorMessage = "Invalid file name: .."
                 } else if parent.getChild(named: filename) != nil {
@@ -417,7 +404,6 @@ struct Level6View: View {
             if path == ".." {
                 errorMessage = "Invalid directory name: .."
             } else if let (parent, dirname) = parsePath2(path) {
-                // Check if the final component is ".."
                 if dirname == ".." {
                     errorMessage = "Invalid directory name: .."
                 } else if parent.getChild(named: dirname) != nil {
@@ -436,7 +422,6 @@ struct Level6View: View {
             if path == ".." {
                 errorMessage = "Cannot remove directory: .."
             } else if let (parent, name) = parsePath2(path) {
-                // Check if trying to remove ".."
                 if name == ".." {
                     errorMessage = "Cannot remove directory: .."
                 } else if parent.getChild(named: name) != nil {
@@ -550,7 +535,6 @@ struct Level6View: View {
             return
         }
         
-        // Handle path argument if provided
         let targetDir: File
         if let path = args.first {
             if let resolved = resolvePath(path, from: currentDir) {
@@ -563,7 +547,7 @@ struct Level6View: View {
             targetDir = currentDir
         }
         
-        let output = targetDir.ls(nil) // We're not passing the path here since we've already resolved it
+        let output = targetDir.ls(nil)
         
         /*
          if output.isEmpty {
@@ -626,8 +610,6 @@ struct Level6View: View {
         commandHistory.append(newCommand)
         errorMessage = nil
     }
-    
-    // MARK: - Helper Functions
     
     private func getCurrentPath(file: File?) -> String {
         var path = [String]()
@@ -694,7 +676,6 @@ struct Level6View: View {
         realDirectory = factory
         oldDirectory = realDirectory
         
-        // Creating directories under factory
         let door = File(name: "door", isDirectory: true, parent: factory)
         let machineRoom = File(name: "machineRoom", isDirectory: true, parent: door)
         let hydraulicPress = File(name: "hydraulicPress", isDirectory: true, parent: machineRoom)

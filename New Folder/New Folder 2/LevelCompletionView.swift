@@ -4,6 +4,9 @@ struct LevelCompletionView: View {
     @Environment(\.dismiss) var dismiss
     @Binding var selectedLevel: Int
     
+    @State var commandCount: Int = 2
+    @State var timeElapsed: Int = 10
+    
     @State private var trigger: Int = 0
     
     var body: some View {
@@ -23,7 +26,7 @@ struct LevelCompletionView: View {
                                 .fill(.black.opacity(0.6))
                                 .offset(y: 10)
                             RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.green, lineWidth: 2)
+                                .stroke(TTYColors.text, lineWidth: 2)
                                 .fill(.ultraThinMaterial)
                                 .offset(y: 10)
                             
@@ -35,17 +38,17 @@ struct LevelCompletionView: View {
                                 
                                 HStack(spacing: 15) {
                                     Image(systemName: "star.fill")
-                                        .foregroundColor(.green)
+                                        .foregroundColor(TTYColors.text)
                                         .font(.system(size: 32))
-                                        .shadow(color: .green, radius: 3, x: 0, y: 0)
+                                        .shadow(color: TTYColors.text, radius: 3, x: 0, y: 0)
                                     Image(systemName: "star.fill")
-                                        .foregroundColor(.green)
+                                        .foregroundColor(TTYColors.text)
                                         .font(.system(size: 32))
-                                        .shadow(color: .green, radius: 3, x: 0, y: 0)
+                                        .shadow(color: TTYColors.text, radius: 3, x: 0, y: 0)
                                     Image(systemName: "star")
-                                        .foregroundColor(.green)
+                                        .foregroundColor(TTYColors.text)
                                         .font(.system(size: 32))
-                                        .shadow(color: .green, radius: 3, x: 0, y: 0)
+                                        .shadow(color: TTYColors.text, radius: 3, x: 0, y: 0)
                                 }
                                 
                                 VStack(spacing: 10) {
@@ -71,9 +74,9 @@ struct LevelCompletionView: View {
                     VStack(alignment: .leading, spacing: 15) {
                         Text("STATUS: OK")
                             .foregroundColor(TTYColors.text)
-                        Text("COMMAND COUNT: 2 - (Best: )")
+                        Text("COMMAND COUNT: \(commandCount)")
                             .foregroundColor(TTYColors.text)
-                        Text("TIME: \(String(format: "%.2f", Double.random(in: 0.1...0.5)))s - (Best: )")
+                        Text("TIME: \(timeElapsed)s")
                             .foregroundColor(TTYColors.text)
                     }
                     .font(.custom("Glass_TTY_VT220", size: 18))

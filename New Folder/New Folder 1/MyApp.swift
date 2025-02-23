@@ -16,6 +16,7 @@ struct MyApp: App {
                     .statusBarHidden(true)
             } else {
                 OnboardingView()
+                    .preferredColorScheme(.dark)
                     .statusBarHidden(true)
             }
         }

@@ -16,35 +16,35 @@ struct TTYView: View {
                 //.edgesIgnoringSafeArea(.all)
             ZStack {
                 RoundedRectangle(cornerRadius: 15)
-                    .fill(isRed ? .black.opacity(0.9) : .black.opacity(0.6))
+                    .fill(isRed ? .black.opacity(0.95) : .black.opacity(0.6))
                 if isRed {
                     RoundedRectangle(cornerRadius: 15)
-                        .fill(.red.opacity(0.1))
+                        .fill(TTYColors.red.opacity(0.08))
                 }
                 RoundedRectangle(cornerRadius: 10)
-                    .stroke(isRed ? Color.red : Color.green, lineWidth: 2)
+                    .stroke(isRed ? TTYColors.red : TTYColors.text, lineWidth: 2)
                     .fill(.ultraThinMaterial)
                 VStack(alignment: .leading, spacing: 0) {
                     Text(welcomeMessage)
-                        .foregroundColor(isRed ? .red : .green)
+                        .foregroundColor(isRed ? TTYColors.red : TTYColors.text)
                         .font(.custom("Glass_TTY_VT220", size: 18))
-                        .foregroundColor(.green)
+                        .foregroundColor(TTYColors.text)
                     
                     ForEach(commandHistory, id: \.self) { command in
                         Text("\(username):\(command.path)$ \(command.command)")
                             .font(.custom("Glass_TTY_VT220", size: 18))
-                            .foregroundColor(isRed ? .red : .green)
+                            .foregroundColor(isRed ? TTYColors.red : TTYColors.text)
                             .textSelection(.enabled)
                         
                         if command.error != nil {
                             Text("\n> \(command.error!)\n")
                                 .font(.custom("Glass_TTY_VT220", size: 18))
-                                .foregroundColor(.red)
+                                .foregroundColor(TTYColors.red)
                                 .textSelection(.enabled)
                         } else if command.output != nil {
                             Text("\n\(command.output!)\n")
                                 .font(.custom("Glass_TTY_VT220", size: 18))
-                                .foregroundColor(isRed ? .red : .green)
+                                .foregroundColor(isRed ? TTYColors.red : TTYColors.text)
                                 .textSelection(.enabled)
                         }
                     }
@@ -52,10 +52,10 @@ struct TTYView: View {
                     HStack(spacing: 0) {
                         Text("\(username):\(currentPath)$ ")
                             .font(.custom("Glass_TTY_VT220", size: 18))
-                            .foregroundColor(isRed ? .red : .green)
+                            .foregroundColor(isRed ? TTYColors.red : TTYColors.text)
                         Text(currentCommand ?? "")
                             .font(.custom("Glass_TTY_VT220", size: 18))
-                            .foregroundColor(isRed ? .red : .green)
+                            .foregroundColor(isRed ? TTYColors.red : TTYColors.text)
                         BlinkingCursor(isRed: isRed)
                     }
                     
@@ -75,7 +75,7 @@ struct BlinkingCursor: View {
     var body: some View {
         Text("_")
             .font(.custom("Glass_TTY_VT220", size: 18))
-            .foregroundColor(isRed ? .red : .green)
+            .foregroundColor(isRed ? TTYColors.red : .green)
             .opacity(isVisible ? 1 : 0)
             .onAppear {
                 let timer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { _ in

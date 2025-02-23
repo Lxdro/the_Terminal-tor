@@ -1,13 +1,11 @@
 import SwiftUI
 
 struct Level1View: View {
-    // MARK: - State
-    @StateObject private var room = File(name: "room", isDirectory: true)
+    @StateObject private var root = File(name: "root", isDirectory: true)
+    
     @State private var currentDirectory: File?
     @State private var selectedCommand: String?
     @State private var selectedFiles: [String] = []
-    @State private var treeText: String = ""
-    @State private var expectedTreeText: String = ""
     @State private var commandHistory: [Command] = []
     @State private var realCommand: String = ""
     @State private var realDirectory: File?
@@ -22,110 +20,62 @@ struct Level1View: View {
     
     """
     
+    @State private var timeElapsed: Int = 0
+    @State private var timer: Timer? = nil
+    
+    private let username = UserDefaults.standard.string(forKey: "username") ?? "user"
+    private let commands = ["cd", "ls", "here"]
+    
+    private let fileOptions = [
+        FileOption(emoji: "🔙", name: ".."),
+        FileOption(emoji: "⬆️", name: "up"),
+        FileOption(emoji: "⬇️", name: "down"),
+        FileOption(emoji: "➡️", name: "right"),
+        FileOption(emoji: "⬅️", name: "left")
+    ]
+    
+    
     @Binding var selectedLevel: Int
     @State private var showCompletion = false
     
-    // MARK: - Constants
-    private let username = UserDefaults.standard.string(forKey: "username") ?? "user"
-    private let commands = ["touch", "mkdir", "rm"]
-    private let fileOptions = [
-        FileOption(emoji: "🔙", name: ".."),
-        FileOption(emoji: "📦", name: "Box"),
-        FileOption(emoji: "🧸", name: "TeddyBear"),
-        FileOption(emoji: "🚂", name: "Train"),
-        FileOption(emoji: "🪁", name: "Kite")
-    ]
-    
-    // Expected file structure for the level
-    @State private var expectedStructure: File? = nil
-    
-    // MARK: - Body
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
                 VStack {
-                    instructions
-                    fileTreeView
+                    instructionView
                 }
                 ttyView
             }
             .frame(height: UIScreen.main.bounds.height / 2.5)
+            
             commandSection
+            
         }
-        //.background(TTYColors.terminalBlack)
         .onAppear(perform: initializeView)
         .sheet(isPresented: $showCompletion) {
-            LevelCompletionView(selectedLevel: $selectedLevel)
+            LevelCompletionView(selectedLevel: $selectedLevel, commandCount: commandCount, timeElapsed: timeElapsed)
+        }
+    }
+    
+    private func handleFileSelection(_ option: FileOption) {
+        if selectedFiles.isEmpty {
+            realCommand += option.name
+        } else {
+            realCommand += "/\(option.name)"
         }
         
+        selectedFiles.append(option.name)
     }
     
-    private var instructions: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Instructions: tidy up your room")
-                .font(.headline)
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.gray.opacity(0.05))
-            
-            ScrollView {
-                Text("""
-                     Now, you can see how your File System look like!
-                     You can't use cd nor ls anymore, you'll probably need to use about path then.
-                     
-                     • Create a box.
-                     • Remove toys that are outisde of the box
-                     • Put your toys inside it
-                     • Your TeddyBear should be inside another box inside the first one, he will feel more secure in this position
-                     
-                     Hint: you can click on multiple file buttons.
-                     """)
-                .font(.system(.body, design: .monospaced))
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .background(Color.gray.opacity(0.2))
-        .cornerRadius(12)
-        .shadow(radius: 2)
-        .padding(.leading)
+    private func selectCommand(_ command: String) {
+        selectedCommand = command
+        realCommand = "\(command) "
+        selectedFiles = []
     }
     
-    private var fileTreeView: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Current File System")
-                .font(.headline)
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.gray.opacity(0.05))
-            
-            ScrollView {
-                Text(treeText)
-                    .font(.system(.body, design: .monospaced))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .background(Color.gray.opacity(0.2))
-        .cornerRadius(12)
-        .shadow(radius: 2)
-        .padding(.leading)
-    }
-    
-    private var ttyView: some View {
-        TTYView(
-            commandHistory: commandHistory,
-            username: username,
-            currentPath: getCurrentPath(file: realDirectory),
-            currentCommand: realCommand,
-            welcomeMessage: welcomeMessage
-        )
-        .frame(width: UIScreen.main.bounds.width / 1.8)
-        //.cornerRadius(12)
-        //.shadow(radius: 2)
-        .padding(.trailing)
+    private func isFileSelectable(_ option: FileOption) -> Bool {
+        let currentDir = currentDirectory ?? root
+        return currentDir.isFileSelectable(name: option.name, forCommand: selectedCommand)
     }
     
     private var commandSection: some View {
@@ -135,7 +85,7 @@ struct Level1View: View {
             Spacer()
             fileButtons
             Spacer()
-                //.padding(.vertical)
+            //.padding(.vertical)
             actionButtons
             Spacer()
         }
@@ -169,11 +119,6 @@ struct Level1View: View {
     
     private var actionButtons: some View {
         HStack {
-            //Spacer()
-            //ActionButton(title: "Restart", baseColor: .red) {
-            //    restartLevel()
-            //}
-
             Spacer()
             ActionButton(title: "Cancel", baseColor: .orange) {
                 resetCommandState()
@@ -188,97 +133,185 @@ struct Level1View: View {
             ActionButton(
                 title: "Execute",
                 baseColor: .green,
-                isEnabled: realCommand != ""
+                isEnabled: selectedCommand != nil
             ) {
+                if timer == nil {
+                    timeElapsed = 0
+                    timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+                        timeElapsed += 1
+                    }
+                }
                 executeCommand()
                 commandCount += 1
-                checkLevelCompletion()
+                realCommand = ""
+                selectedCommand = nil
             }
             Spacer()
         }
-    }
-    
-    private func restartLevel() {
-        // Reset file system
-        room.children?.removeAll()
-        currentDirectory = room
-        realDirectory = room
-        
-        // Reset game state
-        commandCount = 0
-        isLevelComplete = false
-        commandHistory = []
-        
-        // Reset command state
-        resetCommandState()
-        
-        // Update views
-        updateTreeText()
-        welcomeMessage = """
-    Welcome to Terminal-tor
-    Press buttons to make real commands!
-    
-    """
-    }
-    
-    private func checkLevelCompletion() {
-        if room.equals(expectedStructure!) {
-            isLevelComplete = true
-            showCompletion = true
-        }
-    }
-    
-    private var gameStatusSection: some View {
-        HStack(spacing: 20) {
-            Text("Commands Used: \(commandCount)")
-                .font(.headline)
-                .padding()
-                .background(Color.gray.opacity(0.1))
-                .cornerRadius(8)
-        }
-        .padding(.vertical)
-    }
-    
-    private func selectCommand(_ command: String) {
-        selectedCommand = command
-        realCommand = "\(command) "
-        selectedFiles = []
-    }
-    
-    private func isFileSelectable(_ option: FileOption) -> Bool {
-        let currentDir = currentDirectory ?? room
-        return currentDir.isFileSelectable(name: option.name, forCommand: selectedCommand)
-    }
-    
-    private func handleFileSelection(_ option: FileOption) {
-        //guard isFileSelectable(option) else { return }
-        
-        //let currentDir = currentDirectory ?? room
-        
-        /*
-        // Handle directory navigation for cd
-        if selectedCommand == "cd" {
-            if option.name == ".." {
-                currentDirectory = currentDirectory!.parent ?? room
-            } else {
-                currentDirectory = currentDir.getChild(named: option.name)
-            }
-        }*/
-        
-        // Update command string
-        if selectedFiles.isEmpty {
-            realCommand += option.name
-        } else {
-            realCommand += "/\(option.name)"
-        }
-        
-        selectedFiles.append(option.name)
     }
     
     private func resetCommandState() {
         realCommand = ""
         selectedCommand = nil
         selectedFiles = []
+    }
+    
+    private func restartLevel() {
+        stopTimer()
+        root.children?.removeAll()
+        currentDirectory = root
+        realDirectory = root
+        
+        commandCount = 0
+        isLevelComplete = false
+        commandHistory = []
+        
+        initializeView()
+        
+        //resetCommandState()
+        welcomeMessage = """
+    Welcome to the Terminal-tor
+    Write yourself commands to solve the level!
+    
+    """
+    }
+    
+    private func parsePath(_ path: String) -> [String] {
+        guard !path.isEmpty else { return [] }
+        
+        let components = path.split(separator: "/", omittingEmptySubsequences: true)
+            .map(String.init)
+        
+        return components
+    }
+    
+    private func resolvePath(_ path: String, from currentDir: File) -> File? {
+        let components = parsePath(path)
+        var currentFile: File = path.hasPrefix("/") ? root : currentDir
+        
+        for component in components {
+            switch component {
+            case "..":
+                currentFile = currentFile.parent ?? currentFile
+            case ".":
+                continue
+            default:
+                guard let nextFile = currentFile.children?.first(where: { file in
+                    file.name == component
+                }) else {
+                    return nil
+                }
+                currentFile = nextFile
+            }
+        }
+        
+        return currentFile
+    }
+    
+    private func executeCommand() {
+        let components = realCommand.trimmingCharacters(in: .whitespaces).split(separator: " ")
+        guard !components.isEmpty else {
+            setError("Please enter a command")
+            return
+        }
+        
+        let command = String(components[0])
+        let args = components.dropFirst().map(String.init)
+        
+        guard commands.contains(command) || command == "try" else {
+            setError("Unknown command: \(command)")
+            return
+        }
+        
+        switch command {
+        case "ls":
+            executeLsCommand(args: args)
+        case "cd":
+            executeCdCommand(args: args)
+        case "here":
+            checkAnswer(args: args)
+        default:
+            setError("Command not implemented: \(command)")
+        }
+        
+        //userCommand = ""
+        realCommand = ""
+    }
+    
+    private func executeLsCommand(args: [String]) {
+        guard let currentDir = realDirectory else {
+            setError("No current directory")
+            return
+        }
+        
+        let targetDir: File
+        if let path = args.first {
+            if let resolved = resolvePath(path, from: currentDir) {
+                targetDir = resolved
+            } else {
+                setError("ls: no such file or directory: \(path)")
+                return
+            }
+        } else {
+            targetDir = currentDir
+        }
+        
+        let output = targetDir.ls(nil)
+        
+        /*if output.isEmpty {
+            setError("No such file or directory")
+            return
+        }*/
+        
+        currentDirectory = realDirectory
+        addToHistory(command: "ls " + args.joined(separator: " "), output: output)
+    }
+    
+    private func executeCdCommand(args: [String]) {
+        guard let currentDir = realDirectory else {
+            setError("No current directory")
+            return
+        }
+        
+        if args.isEmpty {
+            currentDirectory = realDirectory
+            realDirectory = root
+            addToHistory(command: "cd")
+            return
+        }
+        
+        guard args.count == 1 else {
+            setError("cd: wrong number of arguments")
+            return
+        }
+        
+        let path = args[0]
+        if let newDir = resolvePath(path, from: currentDir) {
+            if newDir.isDirectory {
+                currentDirectory = realDirectory
+                realDirectory = newDir
+                addToHistory(command: "cd " + path)
+            } else {
+                setError("cd: not a directory: \(path)")
+            }
+        } else {
+            setError("cd: no such directory: \(path)")
+        }
+    }
+    
+    private func setError(_ message: String) {
+        errorMessage = message
+        addToHistory(command: realCommand, error: message)
+    }
+    
+    private func addToHistory(command: String, output: String? = nil, error: String? = nil) {
+        let newCommand = Command(
+            path: getCurrentPath(file: currentDirectory),
+            command: command,
+            error: error,
+            output: output
+        )
+        commandHistory.append(newCommand)
     }
     
     private func getCurrentPath(file: File?) -> String {
@@ -293,211 +326,88 @@ struct Level1View: View {
         return "/" + path.joined(separator: "/")
     }
     
-    private func inputPath() -> String {
-        let components = realCommand.split(separator: " ", maxSplits: 1)
-        if components.count > 1 {
-            return String(components[1])
+    private func checkAnswer(args: [String]) {
+        if !args.isEmpty {
+            setError("\"here\" doesn't take any argument.")
         }
-        return ""
+        else if realDirectory!.hasFile(named: "TeddyBear") {
+            stopTimer()
+            isLevelComplete = true
+            showCompletion = true
+        } else {
+            setError("No TeddyBear here... seek before saying you saw him!")
+        }
     }
     
-    private func parsePath(_ path: String) -> (File, String)? {
-        // Start from current directory or root if path starts with /
-        var currentFile = path.hasPrefix("/") ? room : (realDirectory ?? room)
-        var components = path.split(separator: "/")
-        
-        // If path starts with /, remove empty first component
-        if path.hasPrefix("/") {
-            components.removeFirst()
-        }
-        
-        // Handle special case where path is just "/"
-        if components.isEmpty && path.hasPrefix("/") {
-            return (room, "")
-        }
-        
-        // Get the file/directory name (last component)
-        let targetName = String(components.removeLast())
-        
-        // Traverse the path
-        for component in components {
-            let name = String(component)
-            
-            // Handle ".." navigation
-            if name == ".." {
-                currentFile = currentFile.parent ?? room
-                continue
-            }
-            
-            // Try to find the directory
-            guard let nextDir = currentFile.cd(name) else {
-                return nil
-            }
-            
-            // Ensure it's a directory
-            guard nextDir.isDirectory else {
-                return nil
-            }
-            
-            currentFile = nextDir
-        }
-        
-        return (currentFile, targetName)
+    private func stopTimer() {
+        timer?.invalidate()
+        timer = nil
     }
     
-    private func executeCommand() {
-        let oldRealDir = realDirectory
-        if (selectedFiles == []) {
-            if (selectedCommand != "cd") {
-                errorMessage = "Command \(selectedCommand!) need to specify a file."
-            } else {
-                realDirectory = room
-                currentDirectory = room
-                addToCommandHistory(realCommand, oldRealDir)
-                updateTreeText()
-                resetCommandState()
+    private var instructionView: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Instructions: find TeddyBear")
+                .font(.headline)
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.gray.opacity(0.1))
+            
+            ScrollView {
+                Text(
+                     """
+                     Oh no! You've lost your TeddyBear in a vast field of tall grass!  
+                     Use commands to search through each patch of grass and find it.
+                     
+                     \"here\" is a special command for this level — once you've found your TeddyBear, use it to pick it up. 
+                     
+                     For every level:
+                        • Help tab is your best friend
+                        • Remember to clear your terminal when it gets too cluttered!
+                     """
+                )
+                .font(.system(.body, design: .monospaced))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
             }
-            return
         }
-        guard let command = selectedCommand else { return }
-        
-        let path = inputPath()
-        
-        switch command {
-        case "cd":
-            if path.isEmpty || path == "/" {
-                currentDirectory = room
-                realDirectory = room
-            } else {
-                // Special case for "cd .."
-                if path == ".." {
-                    currentDirectory = (realDirectory ?? room).parent ?? room
-                    realDirectory = currentDirectory
-                } else {
-                    // For cd with path
-                    if let (parent, dirname) = parsePath(path) {
-                        if dirname == ".." {
-                            currentDirectory = parent.parent ?? room
-                            realDirectory = currentDirectory
-                        } else if let targetDir = parent.cd(dirname) {
-                            currentDirectory = targetDir
-                            realDirectory = currentDirectory
-                        } else {
-                            errorMessage = "Directory not found: \(path)"
-                        }
-                    } else {
-                        errorMessage = "Invalid path: \(path)"
-                    }
-                }
-            }
-            
-        case "touch":
-            if path == ".." {
-                errorMessage = "Invalid file name: .."
-            } else if let (parent, filename) = parsePath(path) {
-                // Check if the final component is ".."
-                if filename == ".." {
-                    errorMessage = "Invalid file name: .."
-                } else if parent.getChild(named: filename) != nil {
-                    errorMessage = "File already exists: \(path)"
-                } else {
-                    parent.touch(filename)
-                }
-            } else {
-                errorMessage = "Invalid path: \(path)"
-            }
-            
-        case "mkdir":
-            if path == ".." {
-                errorMessage = "Invalid directory name: .."
-            } else if let (parent, dirname) = parsePath(path) {
-                // Check if the final component is ".."
-                if dirname == ".." {
-                    errorMessage = "Invalid directory name: .."
-                } else if parent.getChild(named: dirname) != nil {
-                    errorMessage = "Directory already exists: \(path)"
-                } else {
-                    parent.mkdir(dirname)
-                }
-            } else {
-                errorMessage = "Invalid path: \(path)"
-            }
-            
-        case "rm":
-            if path == ".." {
-                errorMessage = "Cannot remove directory: .."
-            } else if let (parent, name) = parsePath(path) {
-                // Check if trying to remove ".."
-                if name == ".." {
-                    errorMessage = "Cannot remove directory: .."
-                } else if parent.getChild(named: name) != nil {
-                    parent.rm(name)
-                } else {
-                    errorMessage = "No such file or directory: \(path)"
-                }
-            } else {
-                errorMessage = "Invalid path: \(path)"
-            }
-            
-        default:
-            break
-        }
-        
-        addToCommandHistory(realCommand, oldRealDir)
-        updateTreeText()
-        resetCommandState()
+        .frame(maxWidth: .infinity)
+        .background(Color.gray.opacity(0.2))
+        .cornerRadius(12)
+        .shadow(radius: 2)
     }
     
-    private func addToCommandHistory(_ command: String, _ file: File?) {
-        commandHistory.append(Command(path: getCurrentPath(file: file), command: command, error: errorMessage ?? nil))
-        if commandHistory.count > 20 {
-            commandHistory.removeFirst()
-        }
-        errorMessage = nil
-    }
-    
-    private func updateTreeText() {
-        treeText = generateTreeText(for: room)
-    }
-    
-    private func generateTreeText(for file: File, indent: String = "") -> String {
-        var lines = [indent + (file.isDirectory ? "📂" : "📄") + " " + file.name]
-        
-        if let children = file.children {
-            lines.append(contentsOf: children.map { generateTreeText(for: $0, indent: indent + "  ") })
-        }
-        
-        return lines.joined(separator: "\n")
+    private var ttyView: some View {
+        TTYView(
+            commandHistory: commandHistory,
+            username: username,
+            currentPath: getCurrentPath(file: realDirectory),
+            currentCommand: realCommand,
+            welcomeMessage: welcomeMessage
+        )
+        .frame(width: UIScreen.main.bounds.width / 1.8)
     }
     
     private func initializeView() {
-        room.children?.removeAll()
-        currentDirectory = room
-        realDirectory = room
+        root.children?.removeAll()
+        currentDirectory = root
+        realDirectory = root
         
-        // Initial files
-        let teddyBear = File(name: "TeddyBear", isDirectory: false, parent: room)
-        let kite = File(name: "Kite", isDirectory: false, parent: room)
-        let train = File(name: "Train", isDirectory: false, parent: room)
+        let up = File(name: "up", isDirectory: true, parent: root)
+        let down = File(name: "down", isDirectory: true, parent: root)
+        let upLeft = File(name: "left", isDirectory: true, parent: up)
+        let upRight = File(name: "right", isDirectory: true, parent: up)
+        let downLeft = File(name: "left", isDirectory: true, parent: down)
+        let downRight = File(name: "right", isDirectory: true, parent: down)
         
-        room.children = [teddyBear, kite, train]
-        updateTreeText()
-        expectedStructure = initializeGoal()
+        up.children = [upLeft, upRight]
+        down.children = [downLeft, downRight]
+        root.children = [up, down]
+        
+        let possibleParents = [up, down, upLeft, upRight, downLeft, downRight]
+        let randomParent = possibleParents.randomElement()!
+        let teddyBear = File(name: "TeddyBear", isDirectory: false, parent: randomParent)
+        randomParent.children?.append(teddyBear)
     }
-    
-    private func initializeGoal() -> File {
-        let goalRoot = File(name: "room", isDirectory: true, parent: nil)
-        let box1 = File(name: "Box", isDirectory: true, parent: goalRoot)
-        let train = File(name: "Train", isDirectory: false, parent: box1)
-        let kite = File(name: "Kite", isDirectory: false, parent: box1)
-        let box2 = File(name: "Box", isDirectory: true, parent: box1)
-        let teddyBear = File(name: "TeddyBear", isDirectory: false, parent: box2)
-        
-        box1.children = [train, kite, box2]
-        box2.children = [teddyBear]
-        goalRoot.children = [box1]
-        
-        return goalRoot
-    }
+
 }
 

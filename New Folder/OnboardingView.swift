@@ -7,13 +7,11 @@ struct OnboardingView: View {
     @State private var errorMessage: String? = nil
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding: Bool = false
     
-    // Fixed width for the container
     private func containerWidth(_ geometry: GeometryProxy) -> CGFloat {
         let baseWidth = min(geometry.size.width - 80, 500)
         return baseWidth
     }
     
-    // Validate username
     private func validateUsername() -> Bool {
         if username.isEmpty {
             errorMessage = "Trying to be mysterious, are we? Still, we need a name to start!"
@@ -30,7 +28,6 @@ struct OnboardingView: View {
         return true
     }
     
-    // Validate start command
     private func validateStartCommand() -> Bool {
         let validStartCommands = ["Start", "start", "'Start'"]
         if !validStartCommands.contains(startCommand) {
@@ -40,10 +37,8 @@ struct OnboardingView: View {
         return true
     }
     
-    // Validate all inputs
     private func validateInput() {
         if validateUsername() && validateStartCommand() {
-            // Save the username to UserDefaults
             UserDefaults.standard.set(username, forKey: "username")
             hasSeenOnboarding = true
             errorMessage = nil
@@ -61,20 +56,21 @@ struct OnboardingView: View {
                     Spacer()
                     
                     VStack(spacing: 25) {
-                        Text("Welcome to\nTerminal-tor")
+                        Text("Welcome to\nthe Terminal-tor")
                             .font(.custom("Glass_TTY_VT220", size: geometry.size.width < 400 ? 24 : 32))
-                            .foregroundColor(.green)
+                            .foregroundColor(TTYColors.text)
                             .multilineTextAlignment(.center)
                             .padding(.top)
                         
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Enter username:")
                                 .font(.custom("Glass_TTY_VT220", size: 18))
-                                .foregroundColor(.green)
+                                .foregroundColor(TTYColors.text)
                             
                             TextField(">", text: $username)
                                 .font(.custom("Glass_TTY_VT220", size: 20))
-                                .foregroundColor(.green)
+                                .foregroundColor(TTYColors.text)
+                                .disableAutocorrection(true)
                                 .padding(10)
                                 .onChange(of: username) { _, newValue in
                                     if newValue.count > 12 {
@@ -91,11 +87,12 @@ struct OnboardingView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Type 'Start' to begin:")
                                 .font(.custom("Glass_TTY_VT220", size: 18))
-                                .foregroundColor(.green)
+                                .foregroundColor(TTYColors.text)
                             
                             TextField(">", text: $startCommand)
                                 .font(.custom("Glass_TTY_VT220", size: 20))
-                                .foregroundColor(.green)
+                                .foregroundColor(TTYColors.text)
+                                .disableAutocorrection(true)
                                 .padding(10)
                                 .background(
                                     RoundedRectangle(cornerRadius: 8)
@@ -106,14 +103,14 @@ struct OnboardingView: View {
                         if let error = errorMessage {
                             Text(error)
                                 .font(.custom("Glass_TTY_VT220", size: 16))
-                                .foregroundColor(.red)
+                                .foregroundColor(TTYColors.red)
                                 .multilineTextAlignment(.center)
                         }
                         
                         Button(action: validateInput) {
                             Text("Validate")
                                 .font(.custom("Glass_TTY_VT220", size: 20))
-                                .foregroundColor(.green)
+                                .foregroundColor(TTYColors.text)
                                 .padding(.horizontal, 20)
                                 .padding(.vertical, 10)
                         }
@@ -134,7 +131,7 @@ struct OnboardingView: View {
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 15)
-                            .stroke(Color.green, lineWidth: 2)
+                            .stroke(TTYColors.text, lineWidth: 2)
                     )
                     
                     Spacer()
@@ -172,7 +169,6 @@ class PlayerUIView: UIView {
         playerLayer.videoGravity = .resizeAspectFill
         layer.addSublayer(playerLayer)
         
-        // Create player looper
         playerLooper = AVPlayerLooper(player: player, templateItem: item)
         player.isMuted = true
         player.play()

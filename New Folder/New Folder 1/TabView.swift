@@ -8,10 +8,10 @@ struct TabView: View {
     @State private var showAchievements = false
     @State private var selectedLevel: Int = 0
     @State private var selectedLevelInstructions = [
-        "Organisation is Key",
-        "A File Globtrotter",
         "Grass Maze",
+        "Organisation is Key",
         "Family Rescuer",
+        "A File Globtrotter",
         "My Tiny File Garden",
         "The Final Boss"
     ]
@@ -26,11 +26,10 @@ struct TabView: View {
                 
                 VStack(spacing: 20) {
                     if selectedLevel != 0 {
-                        // Terminal View
                         VStack(alignment: .leading, spacing: 15) {
                             Text("TTY00\(selectedLevel) - Level \(selectedLevel): \(selectedLevelInstructions[selectedLevel - 1])")
                                 .font(.custom("Glass_TTY_VT220", size: 24))
-                                .foregroundColor(selectedLevel == 6 ? .red : TTYColors.text)
+                                .foregroundColor(selectedLevel == 6 ? TTYColors.red : TTYColors.text)
                             
                             LevelContentView(selectedLevel: $selectedLevel)
                                 .padding()
@@ -44,14 +43,13 @@ struct TabView: View {
                                 .ignoresSafeArea()
                                 .edgesIgnoringSafeArea(.all)
                                 .frame(width: 600, height: 360)
-                            // Welcome Screen
                             ZStack {
                                 RoundedRectangle(cornerRadius: 15)
                                     .fill(.black.opacity(0.6))
                                     .frame(width: 600, height: 360)
                                 RoundedRectangle(cornerRadius: 10)
                                     .fill(.ultraThinMaterial)
-                                    .stroke(Color.green, lineWidth: 3)
+                                    .stroke(TTYColors.text, lineWidth: 3)
                                     .frame(width: 600, height: 360)
                                 
                                 VStack(spacing: 20) {
@@ -63,14 +61,14 @@ struct TabView: View {
                                         showCursor: true
                                     )
                                     .frame(maxWidth: .infinity, minHeight: 50)
-                                    .shadow(color: .green, radius: 3, x: 0, y: 0)
+                                    .shadow(color: TTYColors.text, radius: 3, x: 0, y: 0)
                                     
                                     TypewriterText(
                                         text: "Learn most useful commands by validating levels.\nNo fancy tutorial here, the help tab is your best friend.",
                                         font: UIFont(name: "Glass_TTY_VT220", size: 18) ?? UIFont.systemFont(ofSize: 18),
                                         textColor: UIColor(TTYColors.dimText),
                                         typingTimeInterval: 0.03,
-                                        startDelay: 3.0 // Start after title animation
+                                        startDelay: 3.0
                                     )
                                     .frame(maxWidth: .infinity, minHeight: 60)
                                     .padding(.bottom, 60)
@@ -153,8 +151,8 @@ struct TTYToolbarButton: View {
         Button(action: action) {
             Label(title, systemImage: systemImage)
                 .font(.custom("Glass_TTY_VT220", size: 16))
-                .foregroundColor(level == 6 ? .red : .green)
-                .shadow(color: level == 6 ? .red : .green, radius: 3, x: 0, y: 0)
+                .foregroundColor(level == 6 ? TTYColors.red : TTYColors.text)
+                .shadow(color: level == 6 ? TTYColors.red : TTYColors.text, radius: 3, x: 0, y: 0)
         }
     }
 }
@@ -180,7 +178,6 @@ struct LevelsView: View {
                                 PlayerView()
                                     .ignoresSafeArea()
                                     .edgesIgnoringSafeArea(.all)
-                                // Welcome Screen
                                 ZStack {
                                     RoundedRectangle(cornerRadius: 15)
                                         .fill(.black.opacity(0.6))
@@ -213,8 +210,14 @@ struct LevelsView: View {
                     }
                 }
                 .padding()
+                .offset(y: 50)
             }
             .background(TTYColors.background)
+            .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Color.gray.opacity(0.3), lineWidth: 4)
+                    )
+            .ignoresSafeArea()
             .navigationTitle("SELECT LEVEL")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -232,8 +235,8 @@ struct LevelsView: View {
 
 struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
-    @State private var soundEnabled = true
-    @State private var typingSound = true
+    @State private var soundEnabled = false
+    @State private var typingSound = false
     @State private var cursorStyle = 0
     
     var body: some View {
@@ -251,11 +254,18 @@ struct SettingsView: View {
                     }
                 }
                 .listRowBackground(Color.gray.opacity(0.2))
+                
             }
+            .offset(y: 50)
             .font(.custom("Glass_TTY_VT220", size: 16))
             .foregroundColor(TTYColors.text)
             .scrollContentBackground(.hidden)
             .background(TTYColors.background)
+            .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Color.gray.opacity(0.3), lineWidth: 4)
+                    )
+            .ignoresSafeArea()
             .navigationTitle("CONFIG")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -276,7 +286,7 @@ struct TTYToggleStyle: ToggleStyle {
         HStack {
             configuration.label
             Spacer()
-            Rectangle()
+            RoundedRectangle(cornerRadius: 5)
                 .fill(configuration.isOn ? TTYColors.text : TTYColors.dimText)
                 .frame(width: 50, height: 25)
                 .overlay(
@@ -310,10 +320,9 @@ struct HelpView: View {
                         CommandHelpRow(command: "rm", description: "Remove the file specified as argument")
                         CommandHelpRow(command: "mkdir", description: "Create the directory specified as argument")
                         CommandHelpRow(command: "touch", description: "Create the file specified as argument")
-                        CommandHelpRow(command: "mv", description: "Move the file specified as argument")
-                        CommandHelpRow(command: "cp", description: "Copy the file specified as argument")
-                        CommandHelpRow(command: "clear", description: "Clear the terminal, even if it's a button in the simulator, this is a real command!")
-                        CommandHelpRow(command: "pwd", description: "Print working directory, this is the path you see after your username in this Simulator")
+                        CommandHelpRow(command: "mv", description: "Move the source to destination (2 arguments). If destination don't exist, it will rename the source to destination.")
+                        CommandHelpRow(command: "cp", description: "Copy the source to destination (2 arguments)")
+                        CommandHelpRow(command: "clear", description: "Same as the \"Clear\" button")
                     }
                     
                     Divider()
@@ -334,9 +343,16 @@ struct HelpView: View {
                     .font(.custom("Glass_TTY_VT220", size: 16))
                 }
                 .padding()
+                
             }
+            .offset(y: 50)
             .foregroundColor(TTYColors.text)
             .background(TTYColors.background)
+            .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Color.gray.opacity(0.3), lineWidth: 4)
+                    )
+            .ignoresSafeArea()
             .navigationTitle("MANUAL")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -374,8 +390,8 @@ struct AchievementsView: View {
     let achievements = [
         Achievement(title: "FIRST_CMD", description: "Execute first command", isUnlocked: false),
         Achievement(title: "DIR_MASTER", description: "Navigate 10 directories", isUnlocked: false),
-        Achievement(title: "PIPE_PRO", description: "Use command pipeline", isUnlocked: false),
-        Achievement(title: "SCRIPT_GURU", description: "Create shell script", isUnlocked: false)
+        Achievement(title: "PATH_PRO", description: "Finish a level in 3 commands", isUnlocked: false),
+        Achievement(title: "THE_FASTEST", description: "Finish a level in less than 9.58s", isUnlocked: false)
     ]
     
     var body: some View {
@@ -383,12 +399,17 @@ struct AchievementsView: View {
             List(achievements) { achievement in
                 AchievementRow(achievement: achievement)
                     .listRowBackground(Color.gray.opacity(0.2))
-                
             }
+            .offset(y: 50)
             .font(.custom("Glass_TTY_VT220", size: 16))
             .scrollContentBackground(.hidden)
             .foregroundColor(TTYColors.text)
             .background(TTYColors.background)
+            .overlay(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Color.gray.opacity(0.3), lineWidth: 4)
+                    )
+            .ignoresSafeArea()
             .navigationTitle("ACHIEVEMENTS")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

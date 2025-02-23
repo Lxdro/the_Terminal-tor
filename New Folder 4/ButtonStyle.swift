@@ -12,17 +12,14 @@ struct KeyButton: ButtonStyle {
             let textColor: Color = unselectable ? .gray : .black
             let isPressed = configuration.isPressed && !selected && !unselectable
             
-            // Background shadow/base layer
             RoundedRectangle(cornerRadius: 6)
                 .foregroundStyle(unselectable ? Color.black : darkerColor)
                 .offset(y: offset)
             
-            // Button face layer
             RoundedRectangle(cornerRadius: 6)
                 .foregroundStyle(unselectable ? Color(red: 0.2, green: 0.2, blue: 0.2) : baseColor)
                 .offset(y: unselectable ? 0 : (selected || isPressed ? offset : 0))
             
-            // Label
             configuration.label
                 .foregroundColor(textColor)
                 .offset(y: unselectable ? 0 : (selected || isPressed ? offset : 0))
@@ -31,12 +28,10 @@ struct KeyButton: ButtonStyle {
         .shadow(radius: unselectable ? 0 : 6, y: unselectable ? 0 : 4)
         .animation(.easeInOut(duration: 0.1), value: selected)
         .animation(.easeInOut(duration: 0.1), value: unselectable)
-        .allowsHitTesting(!unselectable && !selected)  // Prevents interaction when unselectable or selected
+        .allowsHitTesting(!unselectable && !selected)
     }
 }
 
-
-// MARK: - Supporting Views
 struct CommandButton: View {
     let command: String
     let isSelected: Bool

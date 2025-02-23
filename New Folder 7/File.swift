@@ -35,8 +35,6 @@ class File: ObservableObject {
         return true
     }
     
-    // MARK: - File System Operations
-    
     func ls(_ name: String?) -> String {
         let targetFile: File
         
@@ -125,21 +123,15 @@ class File: ObservableObject {
         objectWillChange.send()
     }
     
-    // MARK: - Selection Helper Functions
-    
-    /// Determines if a file name would be selectable in the current directory given a command
     func isFileSelectable(name: String, forCommand command: String?) -> Bool {
         switch command {
         case "touch", "mkdir":
-            // Can create new files/directories only if name doesn't exist
-            // Can't create files named ".." or "."
             return isDirectory && 
             !hasFile(named: name) && 
             name != "." &&
             !(self.isRoot && name == "..")
             
         case "cd":
-            // Can only cd into directories or go up (except at root)
             if name == ".." {
                 return !isRoot
             }
@@ -148,14 +140,12 @@ class File: ObservableObject {
             (getChild(named: name)?.isDirectory ?? false)
             
         case "rm":
-            // Can remove existing files/directories, but not ".." or "."
             return isDirectory && 
             hasFile(named: name) && 
             name != ".." && 
             name != "."
             
         case nil:
-            // When no command is selected, nothing is selectable
             return false
             
         default:
@@ -163,16 +153,13 @@ class File: ObservableObject {
         }
     }
     
-    /// Returns a list of all selectable files for the given command
     func getSelectableFiles(forCommand command: String?) -> [String] {
         var selectableFiles: [String] = []
         
-        // Add ".." if appropriate
         if command != nil && command != "touch" && command != "mkdir" && !isRoot {
             selectableFiles.append("..")
         }
         
-        // Add children based on command context
         children?.forEach { file in
             if isFileSelectable(name: file.name, forCommand: command) {
                 selectableFiles.append(file.name)
@@ -182,7 +169,6 @@ class File: ObservableObject {
         return selectableFiles
     }
     
-    /// Returns a reason why a file isn't selectable, or nil if it is selectable
     func whyNotSelectable(name: String, forCommand command: String?) -> String? {
         switch command {
         case "touch", "mkdir":
@@ -225,14 +211,10 @@ class File: ObservableObject {
         return nil
     }
     
-    // MARK: - Helper Properties
-    
-    /// Returns true if this is the root directory
     var isRoot: Bool {
         return parent == nil || name == "root"
     }
     
-    /// Returns the full path to this file
     var path: String {
         var components: [String] = []
         var current: File? = self

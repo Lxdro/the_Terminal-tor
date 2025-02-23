@@ -1,11 +1,12 @@
 import SwiftUI
 
 struct Level3View: View {
-    @StateObject private var root = File(name: "root", isDirectory: true)
-    
+    @StateObject private var farm = File(name: "farm", isDirectory: true)
     @State private var currentDirectory: File?
     @State private var selectedCommand: String?
     @State private var selectedFiles: [String] = []
+    @State private var treeText: String = ""
+    @State private var expectedTreeText: String = ""
     @State private var commandHistory: [Command] = []
     @State private var realCommand: String = ""
     @State private var realDirectory: File?
@@ -20,60 +21,112 @@ struct Level3View: View {
     
     """
     
-    private let username = UserDefaults.standard.string(forKey: "username") ?? "user"
-    private let commands = ["cd", "ls", "here"]
-    
-    private let fileOptions = [
-        FileOption(emoji: "🔙", name: ".."),
-        FileOption(emoji: "⬆️", name: "up"),
-        FileOption(emoji: "⬇️", name: "down"),
-        FileOption(emoji: "➡️", name: "right"),
-        FileOption(emoji: "⬅️", name: "left")
-    ]
-    
-    
     @Binding var selectedLevel: Int
     @State private var showCompletion = false
     
-    // MARK: - Body
+    @State private var timeElapsed: Int = 0
+    @State private var timer: Timer? = nil
+    
+    private let username = UserDefaults.standard.string(forKey: "username") ?? "user"
+    private let commands = ["mv", "cp"]
+    private let fileOptions = [
+        FileOption(emoji: "🔙", name: ".."),
+        FileOption(emoji: "🐭", name: "Mouse"),
+        FileOption(emoji: "🐰", name: "Rabbit"),
+        FileOption(emoji: "🐓", name: "Rooster"),
+        FileOption(emoji: "🐔", name: "Hen"),
+        FileOption(emoji: "🐇", name: "BabyRabbit"),
+        FileOption(emoji: "🐁", name: "BabyMouse"),
+        FileOption(emoji: "🐥", name: "Chick")
+    ]
+    
+    @State private var expectedStructure: File? = nil
+    
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
-                VStack {
-                    instructionView
+                GeometryReader { proxy in
+                    VStack(spacing: 0) {
+                        instructions
+                            .frame(height: proxy.size.height * (2/5))
+                        
+                        fileTreeView
+                            .frame(height: proxy.size.height * (3/5))
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 ttyView
             }
             .frame(height: UIScreen.main.bounds.height / 2.5)
-            
             commandSection
-            
         }
+        //.background(TTYColors.terminalBlack)
         .onAppear(perform: initializeView)
         .sheet(isPresented: $showCompletion) {
-            LevelCompletionView(selectedLevel: $selectedLevel)
-        }
-    }
-    
-    private func handleFileSelection(_ option: FileOption) {
-        if selectedFiles.isEmpty {
-            realCommand += option.name
-        } else {
-            realCommand += "/\(option.name)"
+            LevelCompletionView(selectedLevel: $selectedLevel, commandCount: commandCount, timeElapsed: timeElapsed)
         }
         
-        selectedFiles.append(option.name)
     }
     
-    private func selectCommand(_ command: String) {
-        selectedCommand = command
-        realCommand = "\(command) "
-        selectedFiles = []
+    private var instructions: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Instructions: tidy up your room")
+                .font(.headline)
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.gray.opacity(0.05))
+            
+            ScrollView {
+                Text("""
+                     Babies are lost! Your task is to reunite each baby with its parent.
+                     Be careful, \"mv\" and \"cp\" are taking **2** arguments - as always, help tab is your best friend.
+                     """)
+                .font(.system(.body, design: .monospaced))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .background(Color.gray.opacity(0.2))
+        .cornerRadius(12)
+        .shadow(radius: 2)
+        .padding(.leading)
     }
     
-    private func isFileSelectable(_ option: FileOption) -> Bool {
-        let currentDir = currentDirectory ?? root
-        return currentDir.isFileSelectable(name: option.name, forCommand: selectedCommand)
+    private var fileTreeView: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Current File System")
+                .font(.headline)
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.gray.opacity(0.05))
+            
+            ScrollView {
+                Text(treeText)
+                    .font(.system(.body, design: .monospaced))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .background(Color.gray.opacity(0.2))
+        .cornerRadius(12)
+        .shadow(radius: 2)
+        .padding(.leading)
+    }
+    
+    private var ttyView: some View {
+        TTYView(
+            commandHistory: commandHistory,
+            username: username,
+            currentPath: getCurrentPath(file: realDirectory),
+            currentCommand: realCommand,
+            welcomeMessage: welcomeMessage
+        )
+        .frame(width: UIScreen.main.bounds.width / 1.8)
+        //.cornerRadius(12)
+        //.shadow(radius: 2)
+        .padding(.trailing)
     }
     
     private var commandSection: some View {
@@ -118,6 +171,11 @@ struct Level3View: View {
     private var actionButtons: some View {
         HStack {
             Spacer()
+            ActionButton(title: "Restart", baseColor: .red) {
+                restartLevel()
+            }
+            
+            Spacer()
             ActionButton(title: "Cancel", baseColor: .orange) {
                 resetCommandState()
             }
@@ -128,194 +186,90 @@ struct Level3View: View {
                 welcomeMessage = ""
             }
             Spacer()
+            ActionButton(title: "Space", baseColor: .cyan) {
+                realCommand += " "
+            }
+            Spacer()
             ActionButton(
                 title: "Execute",
                 baseColor: .green,
-                isEnabled: selectedCommand != nil
+                isEnabled: realCommand != ""
             ) {
+                if timer == nil {
+                    timeElapsed = 0
+                    timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+                        timeElapsed += 1
+                    }
+                }
                 executeCommand()
                 commandCount += 1
-                realCommand = ""
-                selectedCommand = nil
+                checkLevelCompletion()
             }
             Spacer()
         }
     }
     
-    private func resetCommandState() {
-        //userCommand = ""
-        realCommand = ""
-        selectedCommand = nil
-        selectedFiles = []
-    }
-    
     private func restartLevel() {
-        // Reset file system
-        root.children?.removeAll()
-        currentDirectory = root
-        realDirectory = root
+        stopTimer()
+        farm.children?.removeAll()
+        currentDirectory = farm
+        realDirectory = farm
         
-        // Reset game state
         commandCount = 0
         isLevelComplete = false
         commandHistory = []
         
-        initializeView()
+        resetCommandState()
         
-        // Reset command state
-        //resetCommandState()
+        initializeView()
+        updateTreeText()
         welcomeMessage = """
-    Welcome to the Terminal-tor
-    Write yourself commands to solve the level!
+    Welcome to Terminal-tor
+    Press buttons to make real commands!
     
     """
     }
     
-    private func parsePath(_ path: String) -> [String] {
-        // Handle empty path
-        guard !path.isEmpty else { return [] }
-        
-        // Split path into components
-        let components = path.split(separator: "/", omittingEmptySubsequences: true)
-            .map(String.init)
-        
-        return components
+    private func checkLevelCompletion() {
+        if farm.equals(expectedStructure!) {
+            stopTimer()
+            isLevelComplete = true
+            showCompletion = true
+        }
     }
     
-    private func resolvePath(_ path: String, from currentDir: File) -> File? {
-        // Handle absolute vs relative paths
-        let components = parsePath(path)
-        var currentFile: File = path.hasPrefix("/") ? root : currentDir
-        
-        for component in components {
-            switch component {
-            case "..":
-                currentFile = currentFile.parent ?? currentFile
-            case ".":
-                continue
-            default:
-                guard let nextFile = currentFile.children?.first(where: { file in
-                    file.name == component
-                }) else {
-                    return nil
-                }
-                currentFile = nextFile
-            }
-        }
-        
-        return currentFile
+    private func stopTimer() {
+        timer?.invalidate()
+        timer = nil
     }
     
-    // MARK: - Command Processing
+    private func selectCommand(_ command: String) {
+        selectedCommand = command
+        realCommand = "\(command) "
+        selectedFiles = []
+    }
     
-    private func executeCommand() {
-        let components = realCommand.trimmingCharacters(in: .whitespaces).split(separator: " ")
-        guard !components.isEmpty else {
-            setError("Please enter a command")
-            return
+    private func isFileSelectable(_ option: FileOption) -> Bool {
+        let currentDir = currentDirectory ?? farm
+        return currentDir.isFileSelectable(name: option.name, forCommand: selectedCommand)
+    }
+    
+    private func handleFileSelection(_ option: FileOption) {
+        
+        if selectedFiles.isEmpty || realCommand.last == " " {
+            realCommand += option.name
+        } else {
+            realCommand += "/\(option.name)"
         }
         
-        let command = String(components[0])
-        let args = components.dropFirst().map(String.init)
-        
-        guard commands.contains(command) || command == "try" else {
-            setError("Unknown command: \(command)")
-            return
-        }
-        
-        switch command {
-        case "ls":
-            executeLsCommand(args: args)
-        case "cd":
-            executeCdCommand(args: args)
-        case "here":
-            checkAnswer(args: args)
-        default:
-            setError("Command not implemented: \(command)")
-        }
-        
-        //userCommand = ""
+        selectedFiles.append(option.name)
+    }
+    
+    private func resetCommandState() {
         realCommand = ""
+        selectedCommand = nil
+        selectedFiles = []
     }
-    
-    private func executeLsCommand(args: [String]) {
-        guard let currentDir = realDirectory else {
-            setError("No current directory")
-            return
-        }
-        
-        // Handle path argument if provided
-        let targetDir: File
-        if let path = args.first {
-            if let resolved = resolvePath(path, from: currentDir) {
-                targetDir = resolved
-            } else {
-                setError("ls: no such file or directory: \(path)")
-                return
-            }
-        } else {
-            targetDir = currentDir
-        }
-        
-        let output = targetDir.ls(nil) // We're not passing the path here since we've already resolved it
-        
-        /*if output.isEmpty {
-            setError("No such file or directory")
-            return
-        }*/
-        
-        currentDirectory = realDirectory
-        addToHistory(command: "ls " + args.joined(separator: " "), output: output)
-    }
-    
-    private func executeCdCommand(args: [String]) {
-        guard let currentDir = realDirectory else {
-            setError("No current directory")
-            return
-        }
-        
-        if args.isEmpty {
-            currentDirectory = realDirectory
-            realDirectory = root
-            addToHistory(command: "cd")
-            return
-        }
-        
-        guard args.count == 1 else {
-            setError("cd: wrong number of arguments")
-            return
-        }
-        
-        let path = args[0]
-        if let newDir = resolvePath(path, from: currentDir) {
-            if newDir.isDirectory {
-                currentDirectory = realDirectory
-                realDirectory = newDir
-                addToHistory(command: "cd " + path)
-            } else {
-                setError("cd: not a directory: \(path)")
-            }
-        } else {
-            setError("cd: no such directory: \(path)")
-        }
-    }
-    
-    private func setError(_ message: String) {
-        errorMessage = message
-        addToHistory(command: realCommand, error: message)
-    }
-    
-    private func addToHistory(command: String, output: String? = nil, error: String? = nil) {
-        let newCommand = Command(
-            path: getCurrentPath(file: currentDirectory),
-            command: command,
-            error: error,
-            output: output
-        )
-        commandHistory.append(newCommand)
-    }
-    
-    // MARK: - Helper Functions
     
     private func getCurrentPath(file: File?) -> String {
         var path = [String]()
@@ -329,81 +283,203 @@ struct Level3View: View {
         return "/" + path.joined(separator: "/")
     }
     
-    private func checkAnswer(args: [String]) {
-        if !args.isEmpty {
-            setError("\"here\" doesn't take any argument.")
+    private func inputPath() -> String {
+        let components = realCommand.split(separator: " ", maxSplits: 1)
+        if components.count > 1 {
+            return String(components[1])
         }
-        else if realDirectory!.hasFile(named: "TeddyBear") {
-            isLevelComplete = true
-            showCompletion = true
-        } else {
-            setError("No TeddyBear here... seek before saying you saw him!")
-        }
+        return ""
     }
     
-    // MARK: - View Components
-    
-    private var instructionView: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Instructions: find TeddyBear")
-                .font(.headline)
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.gray.opacity(0.1))
+    private func parsePath(_ path: String) -> (File, String)? {
+        
+        var currentFile = path.hasPrefix("/") ? farm : (realDirectory ?? farm)
+        var components = path.split(separator: "/")
+        
+        if path.hasPrefix("/") {
+            components.removeFirst()
+        }
+        
+        if components.isEmpty && path.hasPrefix("/") {
+            return (farm, "")
+        }
+        
+        let targetName = String(components.removeLast())
+        
+        for component in components {
+            let name = String(component)
             
-            ScrollView {
-                Text(
-                     """
-                     Oh no! You've lost your TeddyBear in a vast field of tall grass!  
-                     Use commands to search through each patch of grass and find it.  
-                     
-                     \"here\" is a special command for this level — once you've found your TeddyBear, use it to pick it up.  
-                     
-                     Remember to clear your terminal when it gets too cluttered!
-                     """
-                )
-                .font(.system(.body, design: .monospaced))
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
+            if name == ".." {
+                currentFile = currentFile.parent ?? farm
+                continue
             }
+            
+            guard let nextDir = currentFile.cd(name) else {
+                return nil
+            }
+            
+            guard nextDir.isDirectory else {
+                return nil
+            }
+            
+            currentFile = nextDir
         }
-        .frame(maxWidth: .infinity)
-        .background(Color.gray.opacity(0.2))
-        .cornerRadius(12)
-        .shadow(radius: 2)
+        return (currentFile, targetName)
+    }
+
+    
+    private func executeCommand() {
+        let components = realCommand.split(separator: " ")
+        guard components.count == 3 else {
+            errorMessage = "Error: Both source and destination paths are required"
+            addToCommandHistory(realCommand, realDirectory)
+            return
+        }
+        
+        let command = String(components[0])
+        let sourcePath = String(components[1])
+        let destPath = String(components[2])
+        
+        guard let (sourceParent, sourceFileName) = parsePath(sourcePath) else {
+            errorMessage = "Error: Invalid source path"
+            addToCommandHistory(realCommand, realDirectory)
+            return
+        }
+        
+        guard let sourceFile = sourceParent.getChild(named: sourceFileName) else {
+            errorMessage = "Error: Source file not found"
+            addToCommandHistory(realCommand, realDirectory)
+            return
+        }
+        
+        guard let (destParent, destFileName) = parsePath(destPath) else {
+            errorMessage = "Error: Invalid destination path"
+            addToCommandHistory(realCommand, realDirectory)
+            return
+        }
+        
+        if let existingDest = destParent.getChild(named: destFileName) {
+            if existingDest.isDirectory {
+                let actualDestParent = existingDest
+                let actualDestFileName = sourceFile.name
+                
+                executeFileOperation(command: command, sourceFile: sourceFile,
+                                     destParent: actualDestParent, destFileName: actualDestFileName)
+            } else {
+                errorMessage = "Error: Destination already exists and is not a directory"
+                addToCommandHistory(realCommand, realDirectory)
+                return
+            }
+        } else {
+            executeFileOperation(command: command, sourceFile: sourceFile,
+                                 destParent: destParent, destFileName: destFileName)
+        }
+        
+        addToCommandHistory(realCommand, realDirectory)
+        updateTreeText()
+        resetCommandState()
     }
     
-    private var ttyView: some View {
-        TTYView(
-            commandHistory: commandHistory,
-            username: username,
-            currentPath: getCurrentPath(file: realDirectory),
-            currentCommand: realCommand,
-            welcomeMessage: welcomeMessage
-        )
-        .frame(width: UIScreen.main.bounds.width / 1.8)
+    private func executeFileOperation(command: String, sourceFile: File, destParent: File, destFileName: String) {
+        switch command {
+        case "mv":
+            if let oldParent = sourceFile.parent {
+                oldParent.children?.removeAll(where: { file in
+                    file.name == sourceFile.name
+                })
+            }
+            
+            let newFile = File(name: destFileName, isDirectory: sourceFile.isDirectory)
+            newFile.children = sourceFile.children
+            newFile.children?.forEach { $0.parent = newFile }
+            
+            newFile.parent = destParent
+            destParent.setChild(newFile)
+            
+        case "cp":
+            let newFile = File(name: destFileName, isDirectory: sourceFile.isDirectory)
+            if let sourceChildren = sourceFile.children {
+                newFile.children = sourceChildren.map { childFile in
+                    let copiedChild = File(name: childFile.name, isDirectory: childFile.isDirectory)
+                    copiedChild.children = childFile.children
+                    copiedChild.parent = newFile
+                    return copiedChild
+                }
+            }
+            
+            newFile.parent = destParent
+            destParent.setChild(newFile)
+            
+        default:
+            errorMessage = "Error: Unknown command"
+        }
+    }
+    
+    private func addToCommandHistory(_ command: String, _ file: File?) {
+        commandHistory.append(Command(path: getCurrentPath(file: file), command: command, error: errorMessage ?? nil))
+        if commandHistory.count > 20 {
+            commandHistory.removeFirst()
+        }
+        errorMessage = nil
+    }
+    
+    private func updateTreeText() {
+        treeText = generateTreeText(for: farm)
+    }
+    
+    private func generateTreeText(for file: File, indent: String = "") -> String {
+        var lines = [indent + (file.isDirectory ? "📂" : "📄") + " " + file.name]
+        
+        if let children = file.children {
+            lines.append(contentsOf: children.map { generateTreeText(for: $0, indent: indent + "  ") })
+        }
+        
+        return lines.joined(separator: "\n")
     }
     
     private func initializeView() {
-        root.children?.removeAll()
-        currentDirectory = root
-        realDirectory = root
+        farm.children?.removeAll()
+        currentDirectory = farm
+        realDirectory = farm
+        let rabbit = File(name: "Rabbit", isDirectory: true, parent: farm)
+        let hen = File(name: "Hen", isDirectory: true, parent: farm)
+        let rooster = File(name: "Rooster", isDirectory: true, parent: farm)
+        let mouse = File(name: "Mouse", isDirectory: true, parent: farm)
         
-        let up = File(name: "up", isDirectory: true, parent: root)
-        let down = File(name: "down", isDirectory: true, parent: root)
-        let upLeft = File(name: "left", isDirectory: true, parent: up)
-        let upRight = File(name: "right", isDirectory: true, parent: up)
-        let downLeft = File(name: "left", isDirectory: true, parent: down)
-        let downRight = File(name: "right", isDirectory: true, parent: down)
+        let babyMouse = File(name: "BabyMouse", isDirectory: false, parent: rabbit)
+        let chick = File(name: "Chick", isDirectory: false, parent: mouse)
+        let babyRabbit = File(name: "BabyRabbit", isDirectory: false, parent: rooster)
         
-        up.children = [upLeft, upRight]
-        down.children = [downLeft, downRight]
-        root.children = [up, down]
+        rabbit.children = [babyMouse]
+        hen.children = []
+        rooster.children = [babyRabbit]
+        mouse.children = [chick]
+        farm.children = [rabbit, hen, rooster, mouse]
+        updateTreeText()
+        expectedStructure = initializeGoal()
+    }
+    
+    private func initializeGoal() -> File {
+        let goal = File(name: "farm", isDirectory: true, parent: nil)
         
-        let possibleParents = [up, down, upLeft, upRight, downLeft, downRight]
-        let randomParent = possibleParents.randomElement()!
-        let teddyBear = File(name: "TeddyBear", isDirectory: false, parent: randomParent)
-        randomParent.children?.append(teddyBear)
+        let goalRabbit = File(name: "Rabbit", isDirectory: true, parent: goal)
+        let goalHen = File(name: "Hen", isDirectory: true, parent: goal)
+        let goalRooster = File(name: "Rooster", isDirectory: true, parent: goal)
+        let goalMouse = File(name: "Mouse", isDirectory: true, parent: goal)
+        
+        let goalBabyMouse = File(name: "BabyMouse", isDirectory: false, parent: goalMouse)
+        let goalBabyRabbit = File(name: "BabyRabbit", isDirectory: false, parent: goalRabbit)
+        let goalChick1 = File(name: "Chick", isDirectory: false, parent: goalHen)
+        let goalChick2 = File(name: "Chick", isDirectory: false, parent: goalRooster)
+        
+        goalRabbit.children = [goalBabyRabbit]
+        goalHen.children = [goalChick1]
+        goalRooster.children = [goalChick2]
+        goalMouse.children = [goalBabyMouse]
+        
+        goal.children = [goalRabbit, goalHen, goalRooster, goalMouse]
+        
+        return goal
     }
 
 }
