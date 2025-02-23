@@ -349,7 +349,7 @@ struct Level4View: View {
             commandHistory: commandHistory,
             username: username,
             currentPath: getCurrentPath(file: realDirectory),
-            currentCommand: realCommand,
+            currentCommand: userCommand,
             welcomeMessage: welcomeMessage
         )
         .frame(width: UIScreen.main.bounds.width / 1.8)

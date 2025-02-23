@@ -209,6 +209,7 @@ struct Level6View: View {
     }
     
     private func restartLevel() {
+        hitCount == 0
         stopTimer()
         timer = nil
         timeElapsed = 0

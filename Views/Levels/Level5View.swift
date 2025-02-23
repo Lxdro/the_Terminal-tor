@@ -619,7 +619,7 @@ struct Level5View: View {
         let forest = File(name: "forest", isDirectory: true, parent: town)
         let field = File(name: "field", isDirectory: true, parent: town)
         
-        let gardenShed = File(name: "gardenshed", isDirectory: true, parent: house)
+        let gardenShed = File(name: "wasteland", isDirectory: true, parent: house)
         let brokenPot = File(name: "brokenpot", isDirectory: false, parent: gardenShed)
         let rustyRake = File(name: "rustyrake", isDirectory: false, parent: gardenShed)
         let oldWheelbarrow = File(name: "oldwheelbarrow", isDirectory: false, parent: gardenShed)
@@ -629,14 +629,14 @@ struct Level5View: View {
         
         let oak = File(name: "oak", isDirectory: false, parent: forest)
         let pine = File(name: "pine", isDirectory: false, parent: forest)
-        let birch = File(name: "birch", isDirectory: false, parent: forest)
+        //let birch = File(name: "birch", isDirectory: false, parent: forest)
         
-        let rose = File(name: "rose", isDirectory: false, parent: field)
+        //let rose = File(name: "rose", isDirectory: false, parent: field)
         let tulip = File(name: "tulip", isDirectory: false, parent: field)
         let daisy = File(name: "daisy", isDirectory: false, parent: field)
         
-        forest.children = [birch, oak, pine]
-        field.children = [daisy, rose, tulip]
+        forest.children = [oak, pine]
+        field.children = [daisy, tulip]
         town.children = [field, forest, house]
         
         updateTreeText()
@@ -655,23 +655,23 @@ struct Level5View: View {
         
         let oak = File(name: "oak", isDirectory: false, parent: goalGarden)
         let pine = File(name: "pine", isDirectory: false, parent: goalGarden)
-        let birch = File(name: "birch", isDirectory: false, parent: goalGarden)
-        let rose = File(name: "rose", isDirectory: false, parent: goalGarden)
+        //let birch = File(name: "birch", isDirectory: false, parent: goalGarden)
+        //let rose = File(name: "rose", isDirectory: false, parent: goalGarden)
         let tulip = File(name: "tulip", isDirectory: false, parent: goalGarden)
         let daisy = File(name: "daisy", isDirectory: false, parent: goalGarden)
         
-        goalGarden.children = [birch, daisy, oak, pine, rose, tulip]
+        goalGarden.children = [daisy, oak, pine, tulip]
         goalHouse.children = [goalGarden]
         
         goalForest.children = [
-            File(name: "birch", isDirectory: false, parent: goalForest),
+            //File(name: "birch", isDirectory: false, parent: goalForest),
             File(name: "oak", isDirectory: false, parent: goalForest),
             File(name: "pine", isDirectory: false, parent: goalForest)
                                ]
         
         goalField.children = [
             File(name: "daisy", isDirectory: false, parent: goalField),
-            File(name: "rose", isDirectory: false, parent: goalField),
+            //File(name: "rose", isDirectory: false, parent: goalField),
             File(name: "tulip", isDirectory: false, parent: goalField)
           ]
         
