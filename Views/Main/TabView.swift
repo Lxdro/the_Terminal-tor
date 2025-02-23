@@ -192,7 +192,7 @@ struct LevelsView: View {
                                         
                                         HStack {
                                             ForEach(0..<3) { command in
-                                                Image(systemName: command < (level % 3 + 1) ? "star.fill" : "star")
+                                                Image(systemName: "star")
                                                     .foregroundColor(TTYColors.text)
                                             }
                                         }

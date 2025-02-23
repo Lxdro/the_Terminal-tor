@@ -45,7 +45,7 @@ struct LevelCompletionView: View {
                                         .foregroundColor(TTYColors.text)
                                         .font(.system(size: 32))
                                         .shadow(color: TTYColors.text, radius: 3, x: 0, y: 0)
-                                    Image(systemName: "star")
+                                    Image(systemName: "star.fill")
                                         .foregroundColor(TTYColors.text)
                                         .font(.system(size: 32))
                                         .shadow(color: TTYColors.text, radius: 3, x: 0, y: 0)
