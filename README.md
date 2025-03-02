@@ -12,11 +12,11 @@ From guided button-based interactions to full command-line input, the difficulty
 ## Screenshots
 
 
-                                                                            ![*Onboarding*](onboardingScreenshot.png)
+![Onboarding](onboardingScreenshot.png)
 
-                                                                            ![*Level exemple*](levelScreenshot.png)
+![Level exemple](levelScreenshot.png)
 
-                                                                            ![*Final boss*](bossScreenshot.png)
+![Final boss](bossScreenshot.png)
 
 
 ## Run Locally
