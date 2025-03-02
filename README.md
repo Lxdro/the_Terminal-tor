@@ -9,14 +9,7 @@ An educational and immersive way to learn terminal commands, created for the **S
 
 From guided button-based interactions to full command-line input, the difficulty scales progressively, making it accessible to beginners while still offering a challenge for more experienced users.
 
-## Screenshots
-
-
-![Onboarding](onboardingScreenshot.png)
-
-![Level exemple](levelScreenshot.png)
-
-![Final boss](bossScreenshot.png)
+![Onboarding](Screenshot/onboardingScreenshot.png)
 
 
 ## Run Locally
@@ -49,3 +42,6 @@ There’s still so much to improve! Here are some planned features for future ve
 I’d love to hear your feedback! If you have any thoughts, suggestions, or just want to share your experience, feel free to reach out on X *(@Droni0s)*.
 
 I challenge you to send me your best score on the final level. 😈
+
+
+![Final boss](Screenshot/bossScreenshot.png)
