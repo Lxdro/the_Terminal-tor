@@ -13,13 +13,13 @@ From guided button-based interactions to full command-line input, the difficulty
 
 
 *Onboarding*
-![App Screenshot](Assets.xcassets/onboardingScreenshot)
+![App Screenshot](Screenshot/onboardingScreenshot)
 
 *Level exemple*
-![App Screenshot](Assets.xcassets/levelScreenshot)
+![App Screenshot](Screenshot/levelScreenshot)
 
 *Final boss*
-![App Screenshot](Assets.xcassets/bossScreenshot)
+![App Screenshot](Screenshot/bossScreenshot)
 
 
 ## Run Locally
