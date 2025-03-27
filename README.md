@@ -26,6 +26,7 @@ Now you can open the project with **Swift Playground** or **XCode!**
 ## Usage
 
   - Designed for **MacBook** and **iPad** (landscape mode).
+  - Recommended way to try: Playground app on a Macbook.
   - A **physical keyboard** is highly recommended for the best experience.
   - The *"Enter"* key is used to execute commands.
 ## What's next?
