@@ -1,5 +1,5 @@
 
-# The Terminal-tor
+# The Terminal-tor **[Distinguished Winner]**
 
 An educational and immersive way to learn terminal commands, created for the **Swift Student Challenge 2025**. 🎉
 
