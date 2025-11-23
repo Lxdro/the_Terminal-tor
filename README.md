@@ -41,6 +41,7 @@ There’s still so much to improve! Here are some planned features for future ve
 ## Feedback
 
 I’d love to hear your feedback! If you have any thoughts, suggestions, or just want to share your experience, feel free to reach out on X *(@Droni0s)*.
+Also consider leaving a star if you liked the project or it has somehow been useful :)
 
 I challenge you to send me your best score on the final level. 😈
 
