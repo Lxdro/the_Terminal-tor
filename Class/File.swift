@@ -102,7 +102,7 @@ class File: ObservableObject {
     }
     
     func touch(_ name: String) {
-        guard isDirectory, !hasFile(named: name) else { return }
+        guard isDirectory, !(children?.contains(where: { $0.name == name && !$0.isDirectory }) ?? false) else { return }
         let newFile = File(name: name, isDirectory: false, parent: self)
         children?.append(newFile)
         children?.sort { $0.name < $1.name }
@@ -110,7 +110,7 @@ class File: ObservableObject {
     }
     
     func mkdir(_ name: String) {
-        guard isDirectory, !hasFile(named: name) else { return }
+        guard isDirectory, !(children?.contains(where: { $0.name == name && $0.isDirectory }) ?? false) else { return }
         let newDir = File(name: name, isDirectory: true, parent: self)
         children?.append(newDir)
         children?.sort { $0.name < $1.name }

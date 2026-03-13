@@ -5,7 +5,7 @@ An educational and immersive way to learn terminal commands, created for the **S
 
 ## Description
 
-**The Terminal-tor** is a gamified learning experience designed to teach essential terminal commands through interactive levels. Inspired by the *"do it yourself"* philosophy, the app encourages users to experiment, problem-solve, and learn by doing—just like real developers reading documentation to understand new tools.
+**The Terminal-tor** is a gamified learning experience designed to teach essential terminal commands through interactive levels. Inspired by the *"do it yourself"* philosophy, the app encourages users to experiment, problem-solve, and learn by doing, just like real developers reading documentation to understand new tools.
 
 From guided button-based interactions to full command-line input, the difficulty scales progressively, making it accessible to beginners while still offering a challenge for more experienced users.
 
@@ -43,7 +43,7 @@ There’s still so much to improve! Here are some planned features for future ve
 I’d love to hear your feedback! If you have any thoughts, suggestions, or just want to share your experience, feel free to reach out on X *(@Droni0s)*.
 Also consider leaving a star if you liked the project or it has somehow been useful :)
 
-I challenge you to send me your best score on the final level. 😈
+I challenge you to send me your best score on the final level...
 
 
 ![Final boss](Screenshot/bossScreenshot.png)

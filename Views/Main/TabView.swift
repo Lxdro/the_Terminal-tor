@@ -238,6 +238,7 @@ struct SettingsView: View {
     @State private var soundEnabled = false
     @State private var typingSound = false
     @State private var cursorStyle = 0
+    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding: Bool = false
     
     var body: some View {
         NavigationView {
@@ -247,11 +248,15 @@ struct SettingsView: View {
                         .toggleStyle(TTYToggleStyle())
                     Toggle("KEY_FEEDBACK", isOn: $typingSound)
                         .toggleStyle(TTYToggleStyle())
+                    Toggle("ONBOARDING", isOn: $hasSeenOnboarding)
+                        .toggleStyle(TTYToggleStyle())
                     Picker("CURSOR_STYLE", selection: $cursorStyle) {
                         Text("BLOCK").tag(0)
                         Text("UNDERLINE").tag(1)
                         Text("BEAM").tag(2)
+                        
                     }
+                    
                 }
                 .listRowBackground(Color.gray.opacity(0.2))
                 

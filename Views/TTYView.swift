@@ -24,45 +24,60 @@ struct TTYView: View {
                 RoundedRectangle(cornerRadius: 10)
                     .stroke(isRed ? TTYColors.red : TTYColors.text, lineWidth: 2)
                     .fill(.ultraThinMaterial)
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(welcomeMessage)
-                        .foregroundColor(isRed ? TTYColors.red : TTYColors.text)
-                        .font(.custom("Glass_TTY_VT220", size: 18))
-                        .foregroundColor(TTYColors.text)
-                    
-                    ForEach(commandHistory, id: \.self) { command in
-                        Text("\(username):\(command.path)$ \(command.command)")
-                            .font(.custom("Glass_TTY_VT220", size: 18))
-                            .foregroundColor(isRed ? TTYColors.red : TTYColors.text)
-                            .textSelection(.enabled)
-                        
-                        if command.error != nil {
-                            Text("\n> \(command.error!)\n")
-                                .font(.custom("Glass_TTY_VT220", size: 18))
-                                .foregroundColor(TTYColors.red)
-                                .textSelection(.enabled)
-                        } else if command.output != nil {
-                            Text("\n\(command.output!)\n")
-                                .font(.custom("Glass_TTY_VT220", size: 18))
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text(welcomeMessage)
                                 .foregroundColor(isRed ? TTYColors.red : TTYColors.text)
-                                .textSelection(.enabled)
+                                .font(.custom("Glass_TTY_VT220", size: 18))
+                                .foregroundColor(TTYColors.text)
+                            
+                            ForEach(commandHistory, id: \.self) { command in
+                                Text("\(username):\(command.path)$ \(command.command)")
+                                    .font(.custom("Glass_TTY_VT220", size: 18))
+                                    .foregroundColor(isRed ? TTYColors.red : TTYColors.text)
+                                    .textSelection(.enabled)
+                                
+                                if command.error != nil {
+                                    Text("\n> \(command.error!)\n")
+                                        .font(.custom("Glass_TTY_VT220", size: 18))
+                                        .foregroundColor(TTYColors.red)
+                                        .textSelection(.enabled)
+                                } else if command.output != nil {
+                                    Text("\n\(command.output!)\n")
+                                        .font(.custom("Glass_TTY_VT220", size: 18))
+                                        .foregroundColor(isRed ? TTYColors.red : TTYColors.text)
+                                        .textSelection(.enabled)
+                                }
+                            }
+                            
+                            HStack(spacing: 0) {
+                                Text("\(username):\(currentPath)$ ")
+                                    .font(.custom("Glass_TTY_VT220", size: 18))
+                                    .foregroundColor(isRed ? TTYColors.red : TTYColors.text)
+                                Text(currentCommand ?? "")
+                                    .font(.custom("Glass_TTY_VT220", size: 18))
+                                    .foregroundColor(isRed ? TTYColors.red : TTYColors.text)
+                                BlinkingCursor(isRed: isRed)
+                            }
+                            .id("BOTTOM")
+                            
+                            Spacer()
+                        }
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                        .padding()
+                    }
+                    .onChange(of: commandHistory.count) { _ in
+                        withAnimation {
+                            proxy.scrollTo("BOTTOM", anchor: .bottom)
                         }
                     }
-                    
-                    HStack(spacing: 0) {
-                        Text("\(username):\(currentPath)$ ")
-                            .font(.custom("Glass_TTY_VT220", size: 18))
-                            .foregroundColor(isRed ? TTYColors.red : TTYColors.text)
-                        Text(currentCommand ?? "")
-                            .font(.custom("Glass_TTY_VT220", size: 18))
-                            .foregroundColor(isRed ? TTYColors.red : TTYColors.text)
-                        BlinkingCursor(isRed: isRed)
+                    .onChange(of: currentCommand) { _ in
+                        withAnimation {
+                            proxy.scrollTo("BOTTOM", anchor: .bottom)
+                        }
                     }
-                    
-                    Spacer()
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .padding()
             }
         }
     }
